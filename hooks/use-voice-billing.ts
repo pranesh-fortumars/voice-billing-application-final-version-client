@@ -75,7 +75,7 @@ interface UseVoiceBillingResult {
 const LANGUAGE_TO_LOCALE: Record<Language, string> = {
   en: "en-IN",
   ta: "ta-IN",
-  bilingual: "en-IN",
+  bilingual: "ta-IN",
 }
 
 export function useVoiceBilling({
@@ -219,8 +219,20 @@ export function useVoiceBilling({
     }
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error("Voice billing error", event)
-      setError(event.error || "Voice recognition error")
+      console.error("Speech recognition error:", event.error)
+      
+      let message = event.error
+      if (event.error === "network") {
+        message = "Speech Recognition Network Error: Cannot reach the speech-to-text service. Check your internet connection or browser settings."
+      } else if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        message = "Speech access denied. Please check microphone permissions."
+      } else if (event.error === "no-speech") {
+        return // Ignore "no-speech" as it's common during silences
+      } else if (event.error === "audio-capture") {
+        message = "No microphone found or audio capture failed."
+      }
+
+      setError(message)
       setStatus("error")
     }
 
@@ -229,6 +241,17 @@ export function useVoiceBilling({
         setStatus("paused")
         return
       }
+
+      // Auto-restart if we are supposed to be listening
+      if (status === "listening" || status === "processing") {
+        try {
+          recognition.start()
+          return
+        } catch (err) {
+          console.warn("Auto-restart failed", err)
+        }
+      }
+
       setStatus("idle")
     }
 

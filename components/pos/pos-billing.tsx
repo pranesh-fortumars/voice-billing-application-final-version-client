@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShoppingCart, RefreshCw, FileText, Wallet, Gift, Star, Loader2, Check, Sparkles, Printer } from "lucide-react"
+import { ShoppingCart, RefreshCw, FileText, Wallet, Gift, Star, Loader2, Check, Sparkles, Search } from "lucide-react"
 import { ProductSearch } from "./product-search"
 import { BillingTable, type BillItem } from "./billing-table"
 import { BillingSummary } from "./billing-summary"
@@ -41,6 +41,20 @@ function normalizeVoiceText(value?: string) {
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim()
+}
+
+function speakText(text: string, lang: Language = "en") {
+  if (typeof window === "undefined" || !window.speechSynthesis) return
+
+  // Cancel any ongoing speech
+  window.speechSynthesis.cancel()
+
+  const utterance = new SpeechSynthesisUtterance(text)
+  const locale = lang === "ta" ? "ta-IN" : "en-IN"
+  utterance.lang = locale
+  utterance.rate = 1.0
+  utterance.pitch = 1.0
+  window.speechSynthesis.speak(utterance)
 }
 
 function computeVoiceMatchScore(product: Product, variant: ProductVariant, normalizedTerms: string) {
@@ -266,6 +280,20 @@ export function POSBilling() {
           discountAmount: 0 // This will be calculated in calculateItemTotals
         } : undefined
       })
+
+      // Update product name based on designated language if synonym exists
+      if (language === "ta" || language === "bilingual") {
+        const synonym = VOICE_SYNONYMS.find(s =>
+          normalizeVoiceText(s.canonical) === normalizeVoiceText(product.name) ||
+          s.matchers.some(m => normalizeVoiceText(m) === normalizeVoiceText(product.name))
+        )
+        if (synonym) {
+          const tamilMatcher = synonym.matchers.find(m => /[\u0b80-\u0bff]/.test(m))
+          if (tamilMatcher) {
+            newItem.product = { ...product, name: tamilMatcher }
+          }
+        }
+      }
 
       setBillItems((prev) => [...prev, newItem])
     }
@@ -573,6 +601,8 @@ export function POSBilling() {
 
         if (parsed.action === "hold") {
           holdBill()
+          const msg = language === "ta" ? "பில் நிறுத்தி வைக்கப்பட்டது. அடுத்த பில் சொல்லுங்கள்." : "Bill held. Next product please."
+          speakText(msg, language)
           toast({
             title: "Bill held",
             description: "Current bill moved to held bills via voice command.",
@@ -582,12 +612,16 @@ export function POSBilling() {
 
         if (parsed.action === "clear") {
           if (billItems.length === 0) {
+            const msg = language === "ta" ? "பில்லில் எதுவும் இல்லை." : "Bill is already empty."
+            speakText(msg, language)
             toast({
               title: "Nothing to clear",
               description: "No items in the bill currently.",
             })
           } else {
             clearBill()
+            const msg = language === "ta" ? "பில் சுத்தம் செய்யப்பட்டது. அடுத்த பில் சொல்லுங்கள்." : "Bill cleared. Next product please."
+            speakText(msg, language)
             toast({
               title: "Bill cleared",
               description: "All items removed from the bill via voice.",
@@ -599,11 +633,16 @@ export function POSBilling() {
         if (parsed.action === "remove") {
           const removed = tryRemoveVoiceItem(parsed.terms)
           if (!removed) {
+            const msg = language === "ta" ? "பொருள் கிடைக்கவில்லை." : "Item not found in bill."
+            speakText(msg, language)
             toast({
               title: "No matching item",
               description: "Could not match a billed item to remove.",
               variant: "destructive",
             })
+          } else {
+            const msg = language === "ta" ? "பொருள் நீக்கப்பட்டது. அடுத்த பொருள்?" : "Item removed. Next item?"
+            speakText(msg, language)
           }
           return
         }
@@ -743,11 +782,19 @@ export function POSBilling() {
         const topSuggestion = limitedSuggestions[0]
         if (topSuggestion.score >= AUTO_APPLY_SUGGESTION_SCORE) {
           await applyVoiceSuggestion(topSuggestion, { skipSpinner: true })
+
+          const msg = language === "ta"
+            ? `${topSuggestion.product.name} சேர்க்கப்பட்டது. அடுத்த பொருள்?`
+            : `${topSuggestion.product.name} added. Next product?`
+          speakText(msg, language)
+
           toast({
             title: "Voice match added",
             description: `${topSuggestion.quantity} × ${topSuggestion.product.name} added automatically.`,
           })
         } else {
+          const msg = language === "ta" ? "தயவுசெய்து தேர்வு செய்யவும்." : "Please select a product."
+          speakText(msg, language)
           toast({
             title: "Voice suggestions ready",
             description: "Review the suggested products below and tap apply.",
@@ -918,8 +965,7 @@ export function POSBilling() {
         setLastBillId(bill._id)
       }
 
-      setBillItems([])
-      setCustomerInfo({ name: '', phone: '', email: '', address: '', gstNumber: '' })
+      clearBill()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create bill")
     } finally {
@@ -952,15 +998,7 @@ export function POSBilling() {
 
               {success && (
                 <Alert className="border-green-200 bg-green-50 text-green-800 mb-4">
-                  <AlertDescription className="flex items-center justify-between">
-                    <span>{success}</span>
-                    {lastBillId && (
-                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1 ml-2 bg-white" onClick={handlePrintReceipt}>
-                        <Printer className="h-3 w-3" />
-                        Print Bill
-                      </Button>
-                    )}
-                  </AlertDescription>
+                  <AlertDescription>{success}</AlertDescription>
                 </Alert>
               )}
 
@@ -1072,6 +1110,23 @@ export function POSBilling() {
                           <Button size="sm" variant="default" onClick={() => openProductFormForMissingItem(item)}>
                             Add to inventory
                           </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => {
+                              // Focus the main search bar and pre-fill it with the recognized term
+                              const searchInput = document.querySelector('input[placeholder*="Search products"]') as HTMLInputElement;
+                              if (searchInput) {
+                                searchInput.value = item.normalizedName;
+                                searchInput.focus();
+                                // Trigger a manual search in the ProductSearch component if possible
+                                // Since we can't easily trigger the inner state, just highlighting it is a good start
+                              }
+                            }}
+                          >
+                            <Search className="h-3 w-3 mr-1" />
+                            Search by Code
+                          </Button>
                           <Button size="sm" variant="ghost" onClick={() => dismissMissingItem(item.id)}>
                             Dismiss
                           </Button>
@@ -1115,8 +1170,8 @@ export function POSBilling() {
 
                 {loyaltyStatus && !isCheckingLoyalty && (
                   <div className={`mt-2 p-3 rounded-lg border ${loyaltyStatus.isEligible
-                    ? 'bg-green-50 border-green-200'
-                    : 'bg-amber-50 border-amber-200'
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-amber-50 border-amber-200'
                     }`}>
                     <div className="flex items-center gap-2">
                       {loyaltyStatus.isEligible ? (
