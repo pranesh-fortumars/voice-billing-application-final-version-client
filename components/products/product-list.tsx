@@ -31,6 +31,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Plus, Search, Edit, Trash2, Package, Loader2, PlusCircle } from "lucide-react"
 import { apiClient, type Product } from "@/lib/api"
 import { ProductForm } from "./product-form"
+import { BulkImport } from "./bulk-import"
 
 export function ProductList() {
   const [products, setProducts] = useState<Product[]>([])
@@ -179,10 +180,13 @@ export function ProductList() {
               </CardTitle>
               <CardDescription>Manage your product catalog and inventory</CardDescription>
             </div>
-            <Button onClick={handleAdd}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Product
-            </Button>
+            <div className="flex gap-2">
+              <BulkImport onSuccess={loadProducts} />
+              <Button onClick={handleAdd}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Product
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>

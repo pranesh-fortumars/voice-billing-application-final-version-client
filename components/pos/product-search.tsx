@@ -114,11 +114,24 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
-            onFocus={() => searchTerm.length >= 2 && setShowResults(true)}
+            onFocus={() => {
+              // Sync state with DOM in case it was updated externally (e.g. from pos-billing fallback)
+              const currentVal = (document.querySelector('input[placeholder*="Search products"]') as HTMLInputElement)?.value;
+              if (currentVal && currentVal !== searchTerm) {
+                setSearchTerm(currentVal);
+              }
+              if (searchTerm.length >= 2) setShowResults(true);
+            }}
           />
         </div>
-        <Button variant="outline" onClick={handleBarcodeSearch} disabled={isLoading || !searchTerm}>
+        <Button 
+          variant="outline" 
+          onClick={handleBarcodeSearch} 
+          disabled={isLoading || !searchTerm}
+          className="flex gap-2"
+        >
           <Barcode className="h-4 w-4" />
+          <span className="hidden sm:inline">By Code</span>
         </Button>
       </div>
 

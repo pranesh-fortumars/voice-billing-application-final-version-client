@@ -1,7 +1,23 @@
 import { authService } from "./auth"
 import type { Employee } from "@/types/employee"
+import type { Language } from "@/contexts/language-context"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
+const getApiBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL
+
+  if (typeof window !== "undefined") {
+    const platform = (window as any).Capacitor?.platform
+
+    if (platform === "android") {
+      // Android emulator fallback. For real devices, the user should set NEXT_PUBLIC_API_URL to their machine's IP
+      return "http://10.0.2.2:5001/api" 
+    }
+  }
+
+  return "http://127.0.0.1:5001/api"
+}
+
+const API_BASE_URL = getApiBaseUrl()
 
 class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -17,31 +33,85 @@ class ApiClient {
     })
 
     const config: RequestInit = {
+      ...options,
       headers: {
-        "Content-Type": "application/json",
+        ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
         ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
-      ...options,
     }
 
-    const response = await fetch(url, config)
+    try {
+      const response = await fetch(url, config)
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "Network error" }))
-      console.error("❌ API Error:", {
-        status: response.status,
-        statusText: response.statusText,
-        error,
-        url,
-        hasToken: !!token
-      })
-      throw new Error(error.message || `HTTP ${response.status}`)
+      if (!response.ok) {
+        const errorText = await response.text()
+        let errorData
+        try {
+          errorData = JSON.parse(errorText)
+        } catch {
+          errorData = { message: `Request failed with status ${response.status}: ${response.statusText}`, raw: errorText }
+        }
+
+        console.error("❌ API Error:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+          url,
+        })
+        throw new Error(errorData.message || `HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log("✅ API Response:", data)
+      return data
+    } catch (err: any) {
+      console.error("🌐 Network/Fetch Error:", err)
+      if (err instanceof Error) throw err
+      throw new Error(err?.message || "Network Error: Failed to reach the server.")
     }
+  }
 
-    const data = await response.json()
-    console.log("✅ API Response:", data)
-    return data
+  // -------------------
+  // Client Data API methods
+  // -------------------
+  async getClientData(): Promise<ClientData> {
+    return this.request<ClientData>("/client-data/me")
+  }
+
+  async updateClientData(data: Partial<ClientData>): Promise<ClientData> {
+    return this.request<ClientData>("/client-data/me", {
+      method: "PATCH",
+      body: JSON.stringify(data)
+    })
+  }
+
+  async submitClientData(): Promise<{ message: string }> {
+    return this.request<{ message: string }>("/client-data/me/submit", {
+      method: "POST"
+    })
+  }
+
+  async uploadClientDataFile(file: File, type: "SKU_LIST" | "TAX_PROOF" | "BILL_SAMPLE"): Promise<ClientDataFile> {
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("type", type)
+
+    return this.request<ClientDataFile>("/client-data/upload", {
+      method: "POST",
+      body: formData
+    })
+  }
+
+  async listClientData(): Promise<ClientData[]> {
+    return this.request<ClientData[]>("/client-data")
+  }
+
+  async updateClientDataStatus(id: string, status: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/client-data/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status })
+    })
   }
 
   // -------------------
@@ -80,6 +150,43 @@ class ApiClient {
     })
   }
 
+  async importProducts(file: File): Promise<{ message: string; results: { success: number; failed: number; errors: string[] } }> {
+    const formData = new FormData()
+    formData.append("file", file)
+    return this.request<any>("/products/import", {
+      method: "POST",
+      body: formData
+    })
+  }
+
+  async downloadInventoryTemplate(): Promise<Blob> {
+    const url = `${API_BASE_URL}/products/template/download`
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authService.getToken()}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} - Failed to download template`)
+    }
+
+    return await response.blob()
+  }
+
+  async logVoiceMissingItem(payload: VoiceMissingItemPayload) {
+    try {
+      return await this.request<{ message: string }>("/voice/missing-items", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      })
+    } catch (error) {
+      console.warn("Voice missing item logging failed", error)
+      return null
+    }
+  }
+
   // -------------------
   // Bill API methods
   // -------------------
@@ -88,7 +195,7 @@ class ApiClient {
     const calculatedTotals = billData.items.reduce((acc, item) => {
       const baseAmount = item.rate * item.quantity
       let discountAmount = 0
-      
+
       // Use the pre-calculated discountAmount if available, otherwise calculate it
       if (item.discount) {
         if (item.discount.discountAmount !== undefined) {
@@ -104,11 +211,11 @@ class ApiClient {
           }
         }
       }
-      
+
       const discountedAmount = baseAmount - discountAmount
       const taxAmount = discountedAmount * (item.taxRate / 100)
       const totalAmount = discountedAmount + taxAmount
-      
+
       return {
         subtotal: acc.subtotal + discountedAmount,
         totalDiscount: acc.totalDiscount + discountAmount,
@@ -182,7 +289,7 @@ class ApiClient {
 
   // Send bill via WhatsApp
   async sendBillViaWhatsApp(id: string, phoneNumber: string) {
-    return this.request<{ 
+    return this.request<{
       success: boolean
       message: string
       whatsappUrl: string
@@ -208,13 +315,13 @@ class ApiClient {
   // Generate PDF for a bill
   async generateBillPDF(billId: string, language: string = 'en'): Promise<Blob> {
     console.log('🌐 API: Generating PDF for bill:', billId, 'with language:', language);
-    
+
     const searchParams = new URLSearchParams()
     searchParams.append('language', language)
-    
+
     const url = `${API_BASE_URL}/bills/${billId}/pdf?${searchParams.toString()}`
     console.log('🌐 API: Full URL:', url);
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -361,8 +468,7 @@ class ApiClient {
   async createLeave(leaveData: FormData) {
     return this.request<any>("/leaves", {
       method: "POST",
-      body: leaveData,
-      headers: {} // Let browser set Content-Type for multipart/form-data
+      body: leaveData
     })
   }
 
@@ -551,7 +657,7 @@ class ApiClient {
       method: "POST",
       body: JSON.stringify(data),
     })
-    
+
     // Extract the order data from the response
     return response.data
   }
@@ -626,6 +732,16 @@ export interface Product {
   variants: ProductVariant[]
   createdAt: string
   updatedAt: string
+}
+
+export interface VoiceMissingItemPayload {
+  transcript: string
+  normalizedName: string
+  language: Language
+  confidence: number
+  cashierId?: string
+  storeId?: string
+  createdAt?: string
 }
 
 export interface BillItem {
@@ -924,6 +1040,54 @@ export interface DiscountStats {
     _id: string
     count: number
   }>
+}
+
+export interface ClientData {
+  _id?: string
+  businessProfile?: {
+    storeName?: string
+    contactName?: string
+    contactPhone?: string
+    contactEmail?: string
+    address?: string
+    completed?: boolean
+  }
+  taxConfig?: {
+    regime?: string
+    gstin?: string
+    roundingPreference?: string
+    completed?: boolean
+  }
+  itemMaster?: {
+    totalSkuCount?: number
+    categories?: string[]
+    completed?: boolean
+  }
+  receiptSample?: {
+    useSystemDefault?: boolean
+    notes?: string
+    completed?: boolean
+  }
+  status?: "not_started" | "in_progress" | "pending_review" | "complete"
+  files?: ClientDataFile[]
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface ClientDataFile {
+  _id: string
+  type: "SKU_LIST" | "TAX_PROOF" | "BILL_SAMPLE"
+  originalName: string
+  fileName: string
+  size: number
+  mimeType: string
+  uploadedAt: string
+}
+
+export interface ClientDataStatus {
+  status: "not_started" | "in_progress" | "pending_review" | "complete"
+  canSubmit: boolean
+  missingSections: string[]
 }
 
 export const apiClient = new ApiClient()
