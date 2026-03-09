@@ -33,12 +33,12 @@ class ApiClient {
     })
 
     const config: RequestInit = {
+      ...options,
       headers: {
-        "Content-Type": "application/json",
+        ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
         ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
-      ...options,
     }
 
     try {
@@ -99,8 +99,7 @@ class ApiClient {
 
     return this.request<ClientDataFile>("/client-data/upload", {
       method: "POST",
-      body: formData,
-      headers: {} // Let browser set Content-Type for multipart/form-data
+      body: formData
     })
   }
 
@@ -156,8 +155,7 @@ class ApiClient {
     formData.append("file", file)
     return this.request<any>("/products/import", {
       method: "POST",
-      body: formData,
-      headers: {} // Let browser set Content-Type for multipart/form-data
+      body: formData
     })
   }
 
@@ -470,8 +468,7 @@ class ApiClient {
   async createLeave(leaveData: FormData) {
     return this.request<any>("/leaves", {
       method: "POST",
-      body: leaveData,
-      headers: {} // Let browser set Content-Type for multipart/form-data
+      body: leaveData
     })
   }
 
