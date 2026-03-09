@@ -151,6 +151,32 @@ class ApiClient {
     })
   }
 
+  async importProducts(file: File): Promise<{ message: string; results: { success: number; failed: number; errors: string[] } }> {
+    const formData = new FormData()
+    formData.append("file", file)
+    return this.request<any>("/products/import", {
+      method: "POST",
+      body: formData,
+      headers: {} // Let browser set Content-Type for multipart/form-data
+    })
+  }
+
+  async downloadInventoryTemplate(): Promise<Blob> {
+    const url = `${API_BASE_URL}/products/template/download`
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authService.getToken()}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} - Failed to download template`)
+    }
+
+    return await response.blob()
+  }
+
   async logVoiceMissingItem(payload: VoiceMissingItemPayload) {
     try {
       return await this.request<{ message: string }>("/voice/missing-items", {

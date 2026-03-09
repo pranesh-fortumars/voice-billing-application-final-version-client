@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShoppingCart, RefreshCw, FileText, Wallet, Gift, Star, Loader2, Check, Sparkles } from "lucide-react"
+import { ShoppingCart, RefreshCw, FileText, Wallet, Gift, Star, Loader2, Check, Sparkles, Search } from "lucide-react"
 import { ProductSearch } from "./product-search"
 import { BillingTable, type BillItem } from "./billing-table"
 import { BillingSummary } from "./billing-summary"
@@ -1090,6 +1090,23 @@ export function POSBilling() {
                         <div className="flex flex-wrap gap-2">
                           <Button size="sm" variant="default" onClick={() => openProductFormForMissingItem(item)}>
                             Add to inventory
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => {
+                              // Focus the main search bar and pre-fill it with the recognized term
+                              const searchInput = document.querySelector('input[placeholder*="Search products"]') as HTMLInputElement;
+                              if (searchInput) {
+                                searchInput.value = item.normalizedName;
+                                searchInput.focus();
+                                // Trigger a manual search in the ProductSearch component if possible
+                                // Since we can't easily trigger the inner state, just highlighting it is a good start
+                              }
+                            }}
+                          >
+                            <Search className="h-3 w-3 mr-1" />
+                            Search by Code
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => dismissMissingItem(item.id)}>
                             Dismiss

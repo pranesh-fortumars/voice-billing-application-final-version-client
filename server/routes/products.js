@@ -2,6 +2,13 @@ const express = require("express")
 const Product = require("../models/Product")
 const { auth, adminAuth } = require("../middleware/auth")
 const { triggerStockChangeCheck } = require("../services/immediateStockNotifier")
+const multer = require("multer")
+const xlsx = require("xlsx")
+const path = require("path")
+const fs = require("fs")
+
+// Configure multer for temporary file storage
+const upload = multer({ dest: "uploads/" })
 
 const router = express.Router()
 
@@ -255,5 +262,129 @@ router.delete("/:id", auth, adminAuth, async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message })
   }
 })
+
+// Get empty inventory template (Admin only)
+router.get("/template/download", auth, adminAuth, (req, res) => {
+  try {
+    const data = [
+      {
+        "Product Code": "PR12",
+        "Product Name": "Biscuit",
+        "Barcode": "8901234567890",
+        "Category": "Snacks",
+        "Unit": "pcs",
+        "Tax Rate %": 5,
+        "Base Price": 20,
+        "Base Cost": 15,
+        "Stock": 100,
+        "Variant Size": "100g",
+        "Variant SKU": "BIS001",
+        "Is Active": "Yes"
+      }
+    ];
+
+    const workbook = xlsx.utils.book_new();
+    const worksheet = xlsx.utils.json_to_sheet(data);
+    xlsx.utils.book_append_sheet(workbook, worksheet, "Inventory Template");
+
+    const buffer = xlsx.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+    res.setHeader("Content-Disposition", "attachment; filename=inventory_template.xlsx");
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.send(buffer);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to generate template", error: error.message });
+  }
+});
+
+// Bulk import inventory (Admin only)
+router.post("/import", auth, adminAuth, upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const workbook = xlsx.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const data = xlsx.utils.sheet_to_json(worksheet);
+
+    // Clean up temporary file
+    fs.unlinkSync(req.file.path);
+
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: []
+    };
+
+    for (const item of data) {
+      try {
+        const code = item["Product Code"]?.toString();
+        const name = item["Product Name"];
+        const category = item["Category"];
+        const basePrice = parseFloat(item["Base Price"]);
+        const baseCost = parseFloat(item["Base Cost"]);
+
+        if (!code || !name || !category || isNaN(basePrice) || isNaN(baseCost)) {
+          results.failed++;
+          results.errors.push(`Row missing required fields: ${name || code || 'Unknown'}`);
+          continue;
+        }
+
+        const productData = {
+          code: code.toUpperCase(),
+          name: name.trim(),
+          barcode: item["Barcode"]?.toString() || undefined,
+          category: category.trim(),
+          basePrice,
+          baseCost,
+          unit: item["Unit"] || "pcs",
+          taxRate: parseFloat(item["Tax Rate %"]) || 0,
+          isActive: (item["Is Active"]?.toString().toLowerCase() === 'no') ? false : true
+        };
+
+        // Variant info
+        const size = item["Variant Size"];
+        const sku = item["Variant SKU"];
+        const stock = parseInt(item["Stock"]) || 0;
+
+        if (size || sku) {
+          productData.variants = [{
+            size: size || "Standard",
+            sku: (sku || `${code}-${size || 'STD'}`).toUpperCase(),
+            price: basePrice,
+            cost: baseCost,
+            stock: stock,
+            barcode: productData.barcode,
+            isActive: true
+          }];
+          productData.stock = stock;
+        } else {
+          productData.stock = stock;
+        }
+
+        await Product.findOrCreateProduct(productData);
+        results.success++;
+      } catch (err) {
+        results.failed++;
+        results.errors.push(`Error processing ${item["Product Name (Required)"]}: ${err.message}`);
+      }
+    }
+
+    // Trigger stock notification if items were added
+    if (results.success > 0) {
+      triggerStockChangeCheck().catch(console.error);
+    }
+
+    res.json({
+      message: `Import completed: ${results.success} successful, ${results.failed} failed.`,
+      results
+    });
+  } catch (error) {
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    res.status(500).json({ message: "Import failed", error: error.message });
+  }
+});
 
 module.exports = router
