@@ -6,16 +6,15 @@ const getApiBaseUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL
 
   if (typeof window !== "undefined") {
-    // Check if we are running in a Capacitor environment
-    const isCapacitor = (window as any).Capacitor?.platform !== undefined
+    const platform = (window as any).Capacitor?.platform
 
-    if (isCapacitor) {
+    if (platform === "android") {
       // Android emulator fallback. For real devices, the user should set NEXT_PUBLIC_API_URL to their machine's IP
-      return "http://10.0.2.2:5001/api"
+      return "http://10.0.2.2:5001/api" 
     }
   }
 
-  return "http://localhost:5001/api"
+  return "http://127.0.0.1:5001/api"
 }
 
 const API_BASE_URL = getApiBaseUrl()
@@ -42,23 +41,35 @@ class ApiClient {
       ...options,
     }
 
-    const response = await fetch(url, config)
+    try {
+      const response = await fetch(url, config)
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "Network error" }))
-      console.error("❌ API Error:", {
-        status: response.status,
-        statusText: response.statusText,
-        error,
-        url,
-        hasToken: !!token
-      })
-      throw new Error(error.message || `HTTP ${response.status}`)
+      if (!response.ok) {
+        const errorText = await response.text()
+        let errorData
+        try {
+          errorData = JSON.parse(errorText)
+        } catch {
+          errorData = { message: `Request failed with status ${response.status}: ${response.statusText}`, raw: errorText }
+        }
+
+        console.error("❌ API Error:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+          url,
+        })
+        throw new Error(errorData.message || `HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log("✅ API Response:", data)
+      return data
+    } catch (err: any) {
+      console.error("🌐 Network/Fetch Error:", err)
+      if (err instanceof Error) throw err
+      throw new Error(err?.message || "Network Error: Failed to reach the server.")
     }
-
-    const data = await response.json()
-    console.log("✅ API Response:", data)
-    return data
   }
 
   // -------------------

@@ -124,7 +124,7 @@ export function VoiceControls({ onTranscript }: VoiceControlsProps) {
       if (noiseStatus !== "autopaused" && noiseStatus !== "ok") {
         setNoiseStatus("ok")
       }
-      if (noiseStatus === "autopaused" && status !== "paused") {
+      if (noiseStatus === "autopaused") {
         autoPausedRef.current = false
         setNoiseStatus("ok")
       }
@@ -339,7 +339,24 @@ export function VoiceControls({ onTranscript }: VoiceControlsProps) {
         </Button>
       </div>
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && (
+        <Alert variant="destructive" className="py-2">
+          <AlertDescription className="text-[11px] leading-tight flex flex-col gap-1">
+            <div className="font-semibold flex items-center gap-1">
+              <RefreshCw className="h-3 w-3" />
+              Voice Service Issue
+            </div>
+            {error.includes("Network Error") || error === "network" ? (
+              <>
+                <p>Couldn't reach the voice recognition service. Check your internet connection.</p>
+                <p className="text-[10px] opacity-70 italic">Tip: If you're using Tamil, it often needs an active internet connection to work.</p>
+              </>
+            ) : (
+              <p>{error}</p>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {transcripts.length > 0 && (
         <div className="max-h-32 overflow-y-auto rounded-md bg-background border text-xs divide-y">

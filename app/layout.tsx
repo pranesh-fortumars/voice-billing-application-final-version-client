@@ -31,7 +31,7 @@ export default function RootLayout({
             </AuthProvider>
           </LanguageProvider>
         </Suspense>
-        <Analytics />
+        {typeof window !== "undefined" && !(window as any).Capacitor && <Analytics />}
       </body>
     </html>
   )
