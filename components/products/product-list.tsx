@@ -30,6 +30,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Plus, Search, Edit, Trash2, Package, Loader2, PlusCircle } from "lucide-react"
 import { apiClient, type Product } from "@/lib/api"
+import { isTamilText, cn } from "@/lib/utils"
 import { ProductForm } from "./product-form"
 import { BulkImport } from "./bulk-import"
 
@@ -258,7 +259,7 @@ export function ProductList() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle className="flex items-center gap-2">
+                        <CardTitle className={cn("flex items-center gap-2", isTamilText(category) && "font-sathayam text-xl")}>
                           <Package className="h-5 w-5" />
                           {category}
                         </CardTitle>
@@ -283,7 +284,7 @@ export function ProductList() {
                           <div key={product._id} className="border rounded-lg p-4 space-y-3">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
-                                <div className="font-medium flex items-center gap-2">
+                                <div className={cn("font-medium flex items-center gap-2", isTamilText(product.name) && "font-sathayam text-lg")}>
                                   {product.name}
                                   {hasVariants && (
                                     <span 

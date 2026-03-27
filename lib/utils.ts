@@ -13,3 +13,7 @@ export function formatCurrency(amount: number): string {
     maximumFractionDigits: 2,
   }).format(amount)
 }
+export function isTamilText(text?: string): boolean {
+  if (!text) return false;
+  return /[\u0B80-\u0BFF]/.test(text);
+}

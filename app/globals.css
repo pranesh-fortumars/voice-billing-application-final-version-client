@@ -116,6 +116,17 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+@font-face {
+  font-family: 'Sathayam';
+  src: local('Sathayam'), local('Tamil-Sathayam');
+  /* Fallback to system fonts if not installed */
+  font-display: swap;
+}
+
+.font-sathayam {
+  font-family: 'Sathayam', 'Noto Sans Tamil', 'Arima Madurai', sans-serif !important;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
