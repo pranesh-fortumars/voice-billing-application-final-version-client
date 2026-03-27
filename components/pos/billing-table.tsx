@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Trash2, Minus, Plus } from "lucide-react"
 import type { Product, ProductVariant } from "@/lib/api"
+import { isTamilText, cn } from "@/lib/utils"
 
 export interface BillItem {
   id: string
@@ -79,9 +80,17 @@ export function BillingTable({ items, onUpdateItem, onRemoveItem }: BillingTable
                 </TableCell>
                 <TableCell>
                   <div>
-                    <div className="font-medium">{item.product.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {item.product.category} • {item.variant.size}
+                    <div className={cn("font-medium", isTamilText(item.product.name) && "font-sathayam text-lg")}>
+                      {item.product.name}
+                    </div>
+                    <div className="text-sm text-muted-foreground flex items-center gap-1">
+                      <span className={cn(isTamilText(item.product.category) && "font-sathayam")}>
+                        {item.product.category}
+                      </span>
+                      <span>•</span>
+                      <span className={cn(isTamilText(item.variant.size) && "font-sathayam")}>
+                        {item.variant.size}
+                      </span>
                       <Badge variant="outline" className="ml-2 text-xs">
                         {item.variant.sku}
                       </Badge>

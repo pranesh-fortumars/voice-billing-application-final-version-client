@@ -67,6 +67,7 @@ export function ProductForm({ product, isOpen, onClose, onSuccess, initialValues
       isActive: true,
     }
   ])
+  const [isTamil, setIsTamil] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -243,6 +244,22 @@ export function ProductForm({ product, isOpen, onClose, onSuccess, initialValues
             </div>
           </div>
 
+          <div className="flex items-center space-x-2 p-2 bg-muted/30 rounded-md border border-dashed border-primary/40 mb-2">
+            <Switch
+              id="tamilMode"
+              checked={isTamil}
+              onCheckedChange={setIsTamil}
+              disabled={isLoading}
+              className="data-[state=checked]:bg-primary"
+            />
+            <Label htmlFor="tamilMode" className="flex items-center gap-2 cursor-pointer font-medium">
+              <span className={isTamil ? "font-sathayam text-primary" : ""}>
+                தமிழ் (Sathayam Tamil Input)
+              </span>
+              <span className="text-[10px] text-muted-foreground font-normal bg-muted px-1.5 py-0.5 rounded">Beta</span>
+            </Label>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="name">Product Name *</Label>
             <Input
@@ -252,6 +269,7 @@ export function ProductForm({ product, isOpen, onClose, onSuccess, initialValues
               placeholder="Enter product name"
               required
               disabled={isLoading}
+              className={isTamil ? "font-sathayam text-lg" : ""}
             />
           </div>
 
@@ -263,12 +281,12 @@ export function ProductForm({ product, isOpen, onClose, onSuccess, initialValues
                 onValueChange={(value) => handleInputChange("category", value)}
                 disabled={isLoading}
               >
-                <SelectTrigger>
+                <SelectTrigger className={isTamil ? "font-sathayam" : ""}>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
+                    <SelectItem key={category} value={category} className={isTamil ? "font-sathayam" : ""}>
                       {category}
                     </SelectItem>
                   ))}
@@ -388,6 +406,7 @@ export function ProductForm({ product, isOpen, onClose, onSuccess, initialValues
                       placeholder="250ml, 500ml, 1L"
                       required
                       disabled={isLoading}
+                      className={isTamil ? "font-sathayam text-lg" : ""}
                     />
                   </div>
                   

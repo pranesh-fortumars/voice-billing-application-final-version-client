@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Search, Barcode, Plus } from "lucide-react"
 import { apiClient, type Product, type ProductVariant } from "@/lib/api"
+import { isTamilText, cn } from "@/lib/utils"
 
 interface ProductSearchProps {
   onProductSelect: (product: Product, variant: ProductVariant) => Promise<void>
@@ -144,13 +145,19 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
                 <div className="flex items-center justify-between p-3 bg-muted/50">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{product.name}</span>
+                      <span className={cn("font-medium", isTamilText(product.name) && "font-sathayam text-lg")}>
+                        {product.name}
+                      </span>
                       <Badge variant="outline" className="text-xs">
                         {product.code}
                       </Badge>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {product.category} • {product.unit}
+                    <div className="text-sm text-muted-foreground flex items-center gap-1">
+                      <span className={cn(isTamilText(product.category) && "font-sathayam")}>
+                        {product.category}
+                      </span>
+                      <span>•</span>
+                      <span>{product.unit}</span>
                     </div>
                   </div>
                 </div>
