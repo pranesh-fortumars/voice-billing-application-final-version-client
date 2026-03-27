@@ -32,6 +32,8 @@ class ApiClient {
       tokenPreview: token ? token.substring(0, 20) + '...' : 'none'
     })
 
+    const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData
+
     const config: RequestInit = {
       ...options,
       headers: {
@@ -393,6 +395,46 @@ class ApiClient {
   // Admin: Get available cashiers
   async getAvailableCashiers() {
     return this.request<any>("/shifts/available-cashiers")
+  }
+
+  // -------------------
+  // Client Data Intake API methods
+  // -------------------
+  async getClientData() {
+    return this.request<ClientData>("/client-data/me")
+  }
+
+  async updateClientData(payload: Partial<ClientData>) {
+    return this.request<ClientData>("/client-data/me", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    })
+  }
+
+  async submitClientData(options?: { autoApprove?: boolean }) {
+    return this.request<ClientData>("/client-data/me/submit", {
+      method: "POST",
+      body: JSON.stringify(options ?? {}),
+    })
+  }
+
+  async uploadClientDataFile(formData: FormData) {
+    return this.request<ClientData>("/client-data/upload", {
+      method: "POST",
+      body: formData,
+      headers: {}, // Let browser set Content-Type for multipart/form-data
+    })
+  }
+
+  async listClientData() {
+    return this.request<ClientData[]>("/client-data")
+  }
+
+  async updateClientDataStatus(id: string, payload: { status: ClientDataStatus; notes?: string }) {
+    return this.request<ClientData>(`/client-data/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    })
   }
 
   // -------------------
