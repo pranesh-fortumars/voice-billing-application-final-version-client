@@ -15,7 +15,7 @@ const router = express.Router();
  */
 router.post("/", auth, async (req, res) => {
   try {
-    const { items, customer, cashTendered = 0, paymentMethod, paymentDetails, paymentBreakdown, applyLoyaltyDiscount = false } = req.body;
+    const { items, customer, cashTendered = 0, paymentMethod, paymentDetails, paymentBreakdown, applyLoyaltyDiscount = false, type = "bill" } = req.body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "No items provided for the bill." });
@@ -193,6 +193,7 @@ router.post("/", auth, async (req, res) => {
       cashier: req.user._id,
       cashierName: req.user.name,
       shift: activeShift?._id,
+      type: type || "bill",
     });
 
     await bill.save();
@@ -259,7 +260,7 @@ router.post("/", auth, async (req, res) => {
  */
 router.get("/", auth, async (req, res) => {
   try {
-    const { page = 1, limit = 20, search, startDate, endDate, cashier, status } = req.query;
+    const { page = 1, limit = 20, search, startDate, endDate, cashier, status, type } = req.query;
     const query = {};
 
     if (search) {
@@ -278,6 +279,7 @@ router.get("/", auth, async (req, res) => {
 
     if (cashier) query.cashier = cashier;
     if (status) query.status = status;
+    if (type) query.type = type;
 
     const bills = await Bill.find(query)
       .populate("cashier", "name employeeId")

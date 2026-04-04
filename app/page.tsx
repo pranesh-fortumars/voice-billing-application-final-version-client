@@ -14,6 +14,7 @@ import { EmployeeList } from "@/components/employees/employee-list"
 import { DiscountList } from "@/components/discounts/discount-list"
 import { SettingsManagement } from "@/components/settings/settings-management"
 import { ProfileView } from "@/components/profile/profile-view"
+import { ChallanList } from "@/components/challans/challan-list"
 import ClientDataWizard from "@/components/client-data/client-data-wizard"
 import { Button } from "@/components/ui/button"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
@@ -109,6 +110,17 @@ function ProfileTab() {
   )
 }
 
+function DeliveryChallanTab({ isFullscreen = false }: { isFullscreen?: boolean }) {
+  return (
+    <div className={isFullscreen ? "h-full w-full" : "p-6 space-y-6"}>
+      <div className="flex flex-col gap-6">
+        <POSBilling mode="challan" />
+        <ChallanList />
+      </div>
+    </div>
+  )
+}
+
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState("billing")
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
@@ -125,6 +137,8 @@ export default function HomePage() {
     switch (activeTab) {
       case "billing":
         return <BillingTab isFullscreen={isFullscreen} />
+      case "delivery-challan":
+        return <DeliveryChallanTab isFullscreen={isFullscreen} />
       case "client-data":
         return <ClientDataTab />
       case "products":

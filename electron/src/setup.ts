@@ -229,7 +229,7 @@ export class ElectronCapacitorApp {
 // Set a CSP up for our application based on the custom scheme
 export function setupContentSecurityPolicy(customScheme: string): void {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    const connectSrc = `${customScheme}://* http://localhost:5001 http://127.0.0.1:5001 http://10.0.2.2:5001 https://api.razorpay.com https://api.qrserver.com https://*.google.com https://*.googleapis.com https://*.gstatic.com`;
+    const connectSrc = `${customScheme}://* http://localhost:5001 http://127.0.0.1:5001 http://10.0.2.2:5001 wss://*.google.com https://api.razorpay.com https://api.qrserver.com https://*.google.com https://*.googleapis.com https://*.gstatic.com`;
     callback({
       responseHeaders: {
         ...details.responseHeaders,

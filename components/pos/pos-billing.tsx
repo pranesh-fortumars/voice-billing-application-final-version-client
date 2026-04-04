@@ -159,7 +159,11 @@ function toTitleCase(value: string) {
     .join(" ")
 }
 
-export function POSBilling() {
+export interface POSBillingProps {
+  mode?: "bill" | "challan"
+}
+
+export function POSBilling({ mode = "bill" }: POSBillingProps) {
   const { toast } = useToast()
   const { language } = useLanguage()
   const [billItems, setBillItems] = useState<BillItem[]>([])
@@ -931,7 +935,8 @@ export function POSBilling() {
         paymentMethod: paymentData.paymentMethod,
         paymentDetails: Object.keys(paymentDetails).length > 0 ? paymentDetails : undefined,
         paymentBreakdown: paymentBreakdown.length > 0 ? paymentBreakdown : undefined,
-        applyLoyaltyDiscount: loyaltyStatus?.isEligible || false
+        applyLoyaltyDiscount: loyaltyStatus?.isEligible || false,
+        type: mode
       }
 
       const bill = await apiClient.createBill(billData)
@@ -940,7 +945,7 @@ export function POSBilling() {
       if (customerInfo.email && customerInfo.email.trim() !== '') {
         try {
           await apiClient.sendBillByEmail(bill._id, customerInfo.email)
-          let successMessage = `Bill ${bill.billNumber} created successfully and sent via email to ${customerInfo.email}!`
+          let successMessage = `${mode === "challan" ? "Delivery Challan" : "Bill"} created successfully and sent via email to ${customerInfo.email}!`
           if (loyaltyStatus?.isEligible) {
             successMessage += ` 🎉 2% Loyalty discount applied!`
           }
@@ -949,7 +954,7 @@ export function POSBilling() {
         } catch (emailError) {
           console.error('Failed to send email:', emailError)
           // Still show success for bill creation, but note email failure
-          let successMessage = `Bill ${bill.billNumber} created successfully! (Email delivery failed)`
+          let successMessage = `${mode === "challan" ? "Delivery Challan" : "Bill"} created successfully! (Email delivery failed)`
           if (loyaltyStatus?.isEligible) {
             successMessage += ` 🎉 2% Loyalty discount applied!`
           }
@@ -957,7 +962,7 @@ export function POSBilling() {
           setLastBillId(bill._id)
         }
       } else {
-        let successMessage = `Bill ${bill.billNumber} created successfully!`
+        let successMessage = `${mode === "challan" ? "Delivery Challan" : "Bill"} created successfully!`
         if (loyaltyStatus?.isEligible) {
           successMessage += ` 🎉 2% Loyalty discount applied!`
         }

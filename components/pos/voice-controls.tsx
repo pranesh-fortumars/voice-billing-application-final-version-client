@@ -283,29 +283,9 @@ export function VoiceControls({ onTranscript }: VoiceControlsProps) {
         </Alert>
       )}
 
-      {permissionState === "denied" && (
-        <Alert variant="destructive" className="text-xs">
-          <AlertDescription>
-            Microphone access denied. Please allow access in your browser settings and click “Grant Mic Access”.
-          </AlertDescription>
-        </Alert>
-      )}
 
-      {noiseBaseline === null && (
-        <Alert className="text-xs border-amber-200 bg-amber-50">
-          <AlertDescription>
-            Calibrate the noise baseline to improve accuracy in busy environments.
-          </AlertDescription>
-        </Alert>
-      )}
 
-      {noiseStatus === "warning" && (
-        <Alert className="text-xs border-amber-200 bg-amber-50">
-          <AlertDescription>
-            High ambient noise detected. Voice capture sensitivity has been reduced; consider pausing or recalibrating.
-          </AlertDescription>
-        </Alert>
-      )}
+
 
       {noiseStatus === "autopaused" && (
         <Alert variant="destructive" className="text-xs">
