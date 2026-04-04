@@ -110,13 +110,18 @@ function ProfileTab() {
   )
 }
 
-function DeliveryChallanTab({ isFullscreen = false }: { isFullscreen?: boolean }) {
+function DeliveryChallanCreateTab({ isFullscreen = false }: { isFullscreen?: boolean }) {
   return (
-    <div className={isFullscreen ? "h-full w-full" : "p-6 space-y-6"}>
-      <div className="flex flex-col gap-6">
-        <POSBilling mode="challan" />
-        <ChallanList />
-      </div>
+    <div className={isFullscreen ? "h-full w-full" : "p-6"}>
+      <POSBilling mode="challan" />
+    </div>
+  )
+}
+
+function DeliveryChallanPrintTab() {
+  return (
+    <div className="p-6">
+      <ChallanList />
     </div>
   )
 }
@@ -137,8 +142,10 @@ export default function HomePage() {
     switch (activeTab) {
       case "billing":
         return <BillingTab isFullscreen={isFullscreen} />
-      case "delivery-challan":
-        return <DeliveryChallanTab isFullscreen={isFullscreen} />
+      case "delivery-challan-create":
+        return <DeliveryChallanCreateTab isFullscreen={isFullscreen} />
+      case "delivery-challan-print":
+        return <DeliveryChallanPrintTab />
       case "client-data":
         return <ClientDataTab />
       case "products":

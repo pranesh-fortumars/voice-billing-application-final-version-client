@@ -175,7 +175,7 @@ export function InventorySummary({ onTabChange }: InventorySummaryProps) {
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button 
                   variant="outline" 
-                  onClick={() => onTabChange?.("delivery-challan")}
+                  onClick={() => onTabChange?.("delivery-challan-create")}
                   className="flex items-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
                 >
                   <Truck className="h-4 w-4" />

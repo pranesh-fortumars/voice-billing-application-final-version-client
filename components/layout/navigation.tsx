@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ShoppingCart, Package, Users, FileText, BarChart3, Settings, Clock, Menu, X, Tag, Boxes, Upload, Truck, FileStack } from "lucide-react"
+import { ShoppingCart, Package, Users, FileText, BarChart3, Settings, Clock, Menu, X, Tag, Boxes, Upload, Truck, FileStack, FilePlus, Printer } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { cn } from "@/lib/utils"
 
@@ -21,7 +21,8 @@ export function Navigation({ activeTab, onTabChange, isSidebarOpen, onSidebarTog
 
   const navigationItems = [
     { id: "billing", label: "Billing", icon: ShoppingCart, roles: ["admin", "cashier"] },
-    { id: "delivery-challan", label: "Bulk Delivery Challan", icon: FileStack, roles: ["admin", "cashier"] },
+    { id: "delivery-challan-create", label: "Create Bulk Order", icon: FilePlus, roles: ["admin", "cashier"] },
+    { id: "delivery-challan-print", label: "Print Bulk Order", icon: Printer, roles: ["admin", "cashier"] },
     { id: "client-data", label: "Client Data", icon: Upload, roles: ["admin"] },
     { id: "products", label: "Products", icon: Package, roles: ["admin"] },
     { id: "inventory", label: "Inventory", icon: Boxes, roles: ["admin"] },
@@ -33,8 +34,12 @@ export function Navigation({ activeTab, onTabChange, isSidebarOpen, onSidebarTog
     { id: "settings", label: "Settings", icon: Settings, roles: ["admin"] },
   ]
 
-  const userRole = isAdmin ? "admin" : "cashier"
-  const availableItems = navigationItems.filter((item) => item.roles.includes(userRole))
+  const userRole = (user?.role || "cashier").toLowerCase()
+  const availableItems = navigationItems.filter((item) => {
+    // Force visibility for Bulk Order items for both roles
+    if (item.id.includes("delivery-challan")) return true
+    return item.roles.some(role => role.toLowerCase() === userRole)
+  })
 
   const NavButton = ({ item }: { item: (typeof navigationItems)[0] }) => {
     const Icon = item.icon
@@ -104,7 +109,17 @@ export function Navigation({ activeTab, onTabChange, isSidebarOpen, onSidebarTog
             </Button>
           </div>
           {isSidebarOpen && availableItems.map((item) => (
-            <NavButton key={item.id} item={item} />
+            <div key={item.id} className="relative group">
+              <NavButton item={item} />
+              {(item.id.includes("delivery-challan")) && (
+                <Badge 
+                  variant="secondary" 
+                  className="absolute right-2 top-1.5 h-4 px-1 text-[8px] bg-blue-500 text-white border-none animate-pulse"
+                >
+                  NEW
+                </Badge>
+              )}
+            </div>
           ))}
           {!isSidebarOpen && (
             <div className="space-y-2">
