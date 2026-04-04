@@ -20,9 +20,9 @@ export function Navigation({ activeTab, onTabChange, isSidebarOpen, onSidebarTog
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const navigationItems = [
-    { id: "billing", label: "Billing", icon: ShoppingCart, roles: ["admin", "cashier"] },
     { id: "delivery-challan-create", label: "Create Bulk Order", icon: FilePlus, roles: ["admin", "cashier"] },
     { id: "delivery-challan-print", label: "Print Bulk Order", icon: Printer, roles: ["admin", "cashier"] },
+    { id: "billing", label: "Billing", icon: ShoppingCart, roles: ["admin", "cashier"] },
     { id: "client-data", label: "Client Data", icon: Upload, roles: ["admin"] },
     { id: "products", label: "Products", icon: Package, roles: ["admin"] },
     { id: "inventory", label: "Inventory", icon: Boxes, roles: ["admin"] },
@@ -97,7 +97,7 @@ export function Navigation({ activeTab, onTabChange, isSidebarOpen, onSidebarTog
         <div className="p-4 space-y-2">
           <div className="flex items-center justify-between mb-4">
             {isSidebarOpen && (
-              <h2 className="text-lg font-semibold text-white">Navigation</h2>
+              <h2 className="text-lg font-semibold text-white">Menu</h2>
             )}
             <Button 
               variant="ghost" 
@@ -108,19 +108,11 @@ export function Navigation({ activeTab, onTabChange, isSidebarOpen, onSidebarTog
               {isSidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </Button>
           </div>
-          {isSidebarOpen && availableItems.map((item) => (
-            <div key={item.id} className="relative group">
-              <NavButton item={item} />
-              {(item.id.includes("delivery-challan")) && (
-                <Badge 
-                  variant="secondary" 
-                  className="absolute right-2 top-1.5 h-4 px-1 text-[8px] bg-blue-500 text-white border-none animate-pulse"
-                >
-                  NEW
-                </Badge>
-              )}
-            </div>
-          ))}
+          <div className="space-y-1 mt-2">
+            {isSidebarOpen && availableItems.map((item) => (
+              <NavButton key={item.id} item={item} />
+            ))}
+          </div>
           {!isSidebarOpen && (
             <div className="space-y-2">
               {availableItems.map((item) => (
