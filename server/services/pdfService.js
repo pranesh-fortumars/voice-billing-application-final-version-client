@@ -118,7 +118,14 @@ const generateBillHTML = (bill, language = 'en') => {
         thank_you: "உங்கள் கொள்முதலுக்கு நன்றி!",
         please_visit_again: "மீண்டும் வருகையிடுங்கள்",
         paid: "*** செலுத்தப்பட்டது ***",
-        walk_in_customer: "நேரடி வாடிக்கையாளர்"
+        walk_in_customer: "நேரடி வாடிக்கையாளர்",
+        address_line_1: "123 பிரதான வீதி, நகரம்",
+        address_line_2: "மாநிலம், நாடு - 123456",
+        phone_label: "தொலைபேசி: +91 234 567 8900",
+        cash: "பணம்",
+        card: "அட்டை",
+        upi: "UPI (தமிழ்)",
+        mixed: "கலப்பு"
       }
     };
     
@@ -184,121 +191,118 @@ const generateBillHTML = (bill, language = 'en') => {
     return ' '.repeat(Math.ceil(paddingNeeded)) + str;
   };
 
-  // Helper function to center text
-  const centerText = (str, width) => {
-    const displayWidth = getDisplayWidth(str);
-    const paddingNeeded = Math.max(0, width - displayWidth);
-    const leftPad = Math.floor(paddingNeeded / 2);
-    const rightPad = paddingNeeded - leftPad;
-    return ' '.repeat(leftPad) + str + ' '.repeat(rightPad);
-  };
+  // Generate receipt content as HTML for better alignment
+  const customerName = bill.customer?.name || bill.customerInfo?.name || t('walk_in_customer');
+  const customerPhone = bill.customer?.phone || bill.customerInfo?.phone || '';
+  const customerEmail = bill.customer?.email || bill.customerInfo?.email || '';
 
-  // Generate receipt content as plain text with proper formatting
-  let receiptContent = `
-${centerText(t('supermarket_store'), 32)}
-${centerText('123 Main Street, City', 32)}
-${centerText('State, Country - 123456', 32)}
-${centerText('Phone: +1 234 567 8900', 32)}
-${'='.repeat(32)}
-
-${t('bill')} #: ${bill.billNumber}
-${t('date')}:  ${formatDate(bill.createdAt)}
-${t('cashier')}: ${bill.cashierName}
-${'-'.repeat(32)}
-  `;
-
-  if (bill.customer || bill.customerInfo) {
-    const customerName = bill.customer?.name || bill.customerInfo?.name || t('walk_in_customer');
-    const customerPhone = bill.customer?.phone || bill.customerInfo?.phone || '';
-    const customerEmail = bill.customer?.email || bill.customerInfo?.email || '';
-    
-    receiptContent += `
-${t('customer')}: ${customerName}
-${customerPhone ? `${t('phone')}: ${customerPhone}` : ''}
-${customerEmail ? `${t('email')}: ${customerEmail}` : ''}
-${'-'.repeat(32)}
-    `;
-  }
-
-  // Add items section header
-  receiptContent += `${t('items')}\n${'-'.repeat(32)}\n`;
-  
-  // Add items
-  bill.items.forEach(item => {
-    const baseName = item.product?.name || item.productName || 'Unknown Item';
-    const sizeInfo = item.size || item.variantSize ? `(${item.size || item.variantSize})` : '';
-    const itemTotal = formatCurrency(item.totalAmount || (item.rate * item.quantity));
-    const qtyRate = `${item.quantity}x${formatCurrency(item.rate)}`;
-    
-    // Handle long item names by wrapping them
-    const maxNameLength = 20; // Reduced from 25 to leave more space for amounts
-    const displayName = `${baseName} ${sizeInfo}`.trim();
-    
-    if (displayName.length <= maxNameLength) {
-      // Short name - single line
-      receiptContent += `${padRight(displayName, maxNameLength)}${padLeft(itemTotal, 12)}\n`;
-      receiptContent += `  ${padRight(qtyRate, maxNameLength - 2)}\n`;
-    } else {
-      // Long name - wrap to multiple lines
-      const firstLine = displayName.substring(0, maxNameLength);
-      const remainingName = displayName.substring(maxNameLength);
+  const receiptHTML = `
+    <div class="receipt">
+      <div class="header">
+        <div class="store-name">${t('supermarket_store')}</div>
+        <div class="store-address">${language === 'ta' ? t('address_line_1') : '123 Main Street, City'}</div>
+        <div class="store-address">${language === 'ta' ? t('address_line_2') : 'State, Country - 123456'}</div>
+        <div class="store-phone">${language === 'ta' ? t('phone_label') : 'Phone: +1 234 567 8900'}</div>
+      </div>
       
-      // First line with name start and total
-      receiptContent += `${padRight(firstLine, maxNameLength)}${padLeft(itemTotal, 12)}\n`;
+      <div class="separator mt-1">==============================</div>
       
-      // Second line with remaining name (if any)
-      if (remainingName.length > 0) {
-        const secondLine = remainingName.substring(0, maxNameLength);
-        receiptContent += `${padRight(secondLine, maxNameLength)}\n`;
-      }
+      <div class="bill-info">
+        <div>${t('bill')} #: ${bill.billNumber}</div>
+        <div>${t('date')}: ${formatDate(bill.createdAt)}</div>
+        <div>${t('cashier')}: ${bill.cashierName}</div>
+      </div>
       
-      // Quantity and rate line
-      receiptContent += `  ${padRight(qtyRate, maxNameLength - 2)}\n`;
-    }
-    
-  });
-
-  // Summary section
-  const labelWidth = 20; // Consistent label width
-  const valueWidth = 12; // Consistent value width
-  
-  receiptContent += `
-${'-'.repeat(32)}
-${padRight(t('subtotal') + ':', labelWidth)}${padLeft(formatCurrency(bill.subtotal), valueWidth)}
-`;
-
-  // Add loyalty discount if it exists
-  if (bill.loyaltyDiscount && bill.loyaltyDiscount.discountAmount > 0) {
-    receiptContent += `${padRight(t('loyalty_discount') + ':', labelWidth)}${padLeft('-' + formatCurrency(bill.loyaltyDiscount.discountAmount), valueWidth)}\n`;
-  }
-
-  receiptContent += `${padRight(t('total_tax') + ':', labelWidth)}${padLeft(formatCurrency(bill.totalTax), valueWidth)}\n`;
-
-  if (Math.abs(bill.roundOff) > 0.01) {
-    receiptContent += `${padRight(t('round_off') + ':', labelWidth)}${padLeft((bill.roundOff > 0 ? '+' : '') + formatCurrency(bill.roundOff), valueWidth)}\n`;
-  }
-
-  receiptContent += `
-${'='.repeat(32)}
-${padRight(t('total') + ':', labelWidth)}${padLeft(formatCurrency(bill.grandTotal), valueWidth)}
-${'='.repeat(32)}
-
-${t('payment_method')}: ${bill.paymentMethod.toUpperCase()}
-`;
-
-  if (bill.paymentMethod === 'cash') {
-    receiptContent += `
-${padRight(t('cash_tendered') + ':', labelWidth)}${padLeft(formatCurrency(bill.cashTendered), valueWidth)}
-${padRight(t('change') + ':', labelWidth)}${padLeft(formatCurrency(bill.changeDue), valueWidth)}
-`;
-  }
-
-  receiptContent += `
-${'-'.repeat(32)}
-${centerText(t('thank_you'), 32)}
-${centerText(t('please_visit_again'), 32)}
-${bill.status === 'completed' ? centerText(t('paid'), 32) : ''}
-${'='.repeat(32)}
+      <div class="separator">------------------------------</div>
+      
+      <div class="customer-info">
+        <div>${t('customer')}: ${customerName}</div>
+        ${customerPhone ? `<div>${t('phone')}: ${customerPhone}</div>` : ''}
+        ${customerEmail ? `<div>${t('email')}: ${customerEmail}</div>` : ''}
+      </div>
+      
+      <div class="separator">------------------------------</div>
+      
+      <div class="items-header">${t('items')}</div>
+      <table class="items-table">
+        ${bill.items.map(item => {
+          let baseName = item.product?.name || item.productName || 'Unknown Item';
+          if (language === 'ta' && (item.product?.nameTamil || item.productNameTamil)) {
+            baseName = item.product?.nameTamil || item.productNameTamil;
+          }
+          const sizeInfo = item.size || item.variantSize ? `(${item.size || item.variantSize})` : '';
+          const displayName = `${baseName} ${sizeInfo}`.trim();
+          const itemTotal = formatCurrency(item.totalAmount || (item.rate * item.quantity));
+          const qtyRate = `${item.quantity}x${formatCurrency(item.rate)}`;
+          
+          return `
+            <tr>
+              <td>
+                <div class="item-name">${displayName}</div>
+                <div class="item-qty">${qtyRate}</div>
+              </td>
+              <td class="item-price">${itemTotal}</td>
+            </tr>
+          `;
+        }).join('')}
+      </table>
+      
+      <div class="separator mt-1">------------------------------</div>
+      
+      <table class="summary-table">
+        <tr>
+          <td>${t('subtotal')}:</td>
+          <td>${formatCurrency(bill.subtotal)}</td>
+        </tr>
+        ${bill.loyaltyDiscount && bill.loyaltyDiscount.discountAmount > 0 ? `
+          <tr>
+            <td>${t('loyalty_discount')}:</td>
+            <td>-${formatCurrency(bill.loyaltyDiscount.discountAmount)}</td>
+          </tr>
+        ` : ''}
+        <tr>
+          <td>${t('total_tax')}:</td>
+          <td>${formatCurrency(bill.totalTax)}</td>
+        </tr>
+        ${Math.abs(bill.roundOff) > 0.01 ? `
+          <tr>
+            <td>${t('round_off')}:</td>
+            <td>${(bill.roundOff > 0 ? '+' : '') + formatCurrency(bill.roundOff)}</td>
+          </tr>
+        ` : ''}
+        <tr class="total-row">
+          <td>${t('total')}:</td>
+          <td>${formatCurrency(bill.grandTotal)}</td>
+        </tr>
+      </table>
+      
+      <div class="separator mt-1">==============================</div>
+      
+      <div class="payment-info">
+        <div>${t('payment_method')}: ${t(bill.paymentMethod.toLowerCase())}</div>
+        ${bill.paymentMethod === 'cash' ? `
+          <table class="payment-table">
+            <tr>
+              <td>${t('cash_tendered')}:</td>
+              <td>${formatCurrency(bill.cashTendered)}</td>
+            </tr>
+            <tr>
+              <td>${t('change')}:</td>
+              <td>${formatCurrency(bill.changeDue)}</td>
+            </tr>
+          </table>
+        ` : ''}
+      </div>
+      
+      <div class="separator mt-1">------------------------------</div>
+      
+      <div class="footer">
+        <div class="thank-you">${t('thank_you')}</div>
+        <div class="visit-again">${t('please_visit_again')}</div>
+        ${bill.status === 'completed' ? `<div class="paid-status">${t('paid')}</div>` : ''}
+      </div>
+      <div class="separator">==============================</div>
+    </div>
   `;
 
   return `
@@ -311,71 +315,49 @@ ${'='.repeat(32)}
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;700&family=Courier+New:wght@400;700&display=swap');
         
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-          font-family: ${language === 'ta' ? "'Noto Sans Tamil', 'Courier New', monospace" : "'Courier New', monospace"};
-          font-size: ${language === 'ta' ? '10px' : '9px'};
-          line-height: 1.3;
+          font-family: ${language === 'ta' ? "'Noto Sans Tamil', 'Courier New', sans-serif" : "'Courier New', monospace"};
           background: white;
           color: black;
-          padding: 2px;
-          max-width: 288px;
-          margin: 0 auto;
-          white-space: pre;
-          letter-spacing: ${language === 'ta' ? '0.1px' : '0.2px'};
-          font-weight: normal;
-          direction: ltr;
-          text-rendering: optimizeLegibility;
-          -webkit-font-smoothing: antialiased;
-          -moz-osx-font-smoothing: grayscale;
+          width: 80mm;
+          margin: 0;
+          padding: 5px;
+          overflow-x: hidden;
         }
+
+        .receipt { width: 100%; border:0px solid #000; }
         
-        /* Bilingual support - show both English and Tamil */
-        .bilingual {
-          display: flex;
-          flex-direction: column;
-          line-height: 1.2;
-          margin: 2px 0;
-        }
+        .header { text-align: center; margin-bottom: 2px; }
+        .store-name { font-weight: bold; font-size: 14px; margin-bottom: 2px; }
+        .store-address, .store-phone { font-size: 10px; margin-bottom: 1px; }
         
-        .tamil {
-          font-family: 'Noto Sans Tamil', sans-serif;
-          font-size: 8px;
-          color: #333;
-          font-weight: 500;
-          text-rendering: optimizeLegibility;
-        }
+        .separator { text-align: center; letter-spacing: -1px; margin: 2px 0; overflow: hidden; white-space: nowrap; }
+        .mt-1 { margin-top: 4px; }
         
-        .english {
-          font-family: 'Courier New', monospace;
-          font-size: 7px;
-          color: #666;
-          font-weight: normal;
-        }
+        .bill-info, .customer-info, .payment-info { font-size: 10px; margin: 4px 0; }
+        .bill-info div, .customer-info div, .payment-info div { margin-bottom: 2px; }
         
-        @media print {
-          body {
-            margin: 0;
-            padding: 0;
-          }
-          
-          .tamil {
-            font-size: 8px;
-          }
-          
-          .english {
-            font-size: 7px;
-          }
-        }
+        .items-header { font-weight: bold; font-size: 11px; margin: 4px 0; padding-bottom: 2px; }
+        .items-table, .summary-table, .payment-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        .items-table td, .summary-table td, .payment-table td { padding: 2px 0; vertical-align: top; }
+        
+        .item-name { font-weight: 500; }
+        .item-qty { font-size: 8px; color: #444; }
+        .item-price { text-align: right; width: 30%; }
+        
+        .summary-table td:last-child, .payment-table td:last-child { text-align: right; width: 40%; }
+        .total-row { font-weight: bold; font-size: 12px; }
+        .total-row td { border-top: 1px dashed black; border-bottom: 1px dashed black; padding: 4px 0 !important; }
+        
+        .footer { text-align: center; font-size: 11px; margin: 8px 0; }
+        .thank-you { font-weight: bold; margin-bottom: 2px; }
+        .paid-status { font-weight: bold; margin-top: 4px; }
       </style>
     </head>
     <body>
-      ${receiptContent}
+      ${receiptHTML}
     </body>
     </html>
   `;
