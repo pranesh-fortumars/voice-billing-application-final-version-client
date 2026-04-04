@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShoppingCart, RefreshCw, FileText, Wallet, Gift, Star, Loader2, Check, Sparkles, Search } from "lucide-react"
+import { ShoppingCart, RefreshCw, FileText, Wallet, Gift, Star, Loader2, Check, Sparkles, Search, Truck } from "lucide-react"
 import { ProductSearch } from "./product-search"
 import { BillingTable, type BillItem } from "./billing-table"
 import { BillingSummary } from "./billing-summary"
@@ -1007,6 +1007,20 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
                 </Alert>
               )}
 
+              {/* Mode Indicator Banner */}
+              {mode === "challan" && (
+                <div className="bg-blue-600 text-white px-4 py-2 rounded-lg mb-4 flex items-center justify-between shadow-md">
+                  <div className="flex items-center gap-2">
+                    <Truck className="h-5 w-5" />
+                    <span className="font-bold uppercase tracking-wider text-sm">Delivery Challan Mode Active</span>
+                  </div>
+                  <Badge variant="secondary" className="text-blue-700 bg-white border-none text-[10px] uppercase font-bold px-2 py-0.5">
+                    Bulk Orders
+                  </Badge>
+                </div>
+              )}
+
+
               {/* Product Search with Action Buttons */}
               <div className="flex-shrink-0 space-y-4">
                 <div className="flex gap-3 items-end">
@@ -1232,7 +1246,7 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
                   <CardHeader className="pb-1">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <ShoppingCart className="h-5 w-5" />
-                      Bill Summary
+                      {mode === "challan" ? "Challan Summary" : "Bill Summary"}
                       {billItems.length > 0 && (
                         <span className="ml-auto text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
                           {billItems.length} items
@@ -1253,7 +1267,7 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
                     <CardHeader className="pb-1">
                       <CardTitle className="text-lg flex items-center gap-2">
                         <Wallet className="h-5 w-5" />
-                        Payment
+                        {mode === "challan" ? "Delivery Info" : "Payment"}
                         <span className="ml-auto text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
                           ₹{Math.round(finalGrandTotal).toLocaleString('en-IN')}
                         </span>

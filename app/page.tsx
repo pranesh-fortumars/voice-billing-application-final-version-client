@@ -53,10 +53,10 @@ function ShiftsTab() {
   )
 }
 
-function InventoryTab() {
+function InventoryTab({ onTabChange }: { onTabChange: (tab: string) => void }) {
   return (
     <div className="p-6">
-      <InventorySummary />
+      <InventorySummary onTabChange={onTabChange} />
     </div>
   )
 }
@@ -144,7 +144,7 @@ export default function HomePage() {
       case "products":
         return <ProductsTab />
       case "inventory":
-        return <InventoryTab />
+        return <InventoryTab onTabChange={setActiveTab} />
       case "bills":
         return <BillsTab />
       case "shifts":

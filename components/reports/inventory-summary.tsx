@@ -5,8 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { AlertTriangle, TrendingDown, Package, Mail, Building2, MessageSquare } from "lucide-react"
+import { AlertTriangle, TrendingDown, Package, Mail, Building2, MessageSquare, Truck } from "lucide-react"
 import { apiClient, type InventoryReport } from "@/lib/api"
+import { BulkImport } from "@/components/products/bulk-import"
 
 interface ExtendedInventoryReport extends Omit<InventoryReport, 'products'> {
   products: InventoryProduct[]
@@ -29,7 +30,11 @@ interface InventoryProduct {
   size?: string
 }
 
-export function InventorySummary() {
+interface InventorySummaryProps {
+  onTabChange?: (tab: string) => void
+}
+
+export function InventorySummary({ onTabChange }: InventorySummaryProps) {
   const [inventoryData, setInventoryData] = useState<ExtendedInventoryReport | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
@@ -157,21 +162,39 @@ export function InventorySummary() {
               <CardDescription>
                 {showLowStock ? "Products with low stock levels" : "All active products"}
               </CardDescription>
+              <div className="mt-4 flex gap-2">
+                <div className="bg-primary/5 p-3 rounded-lg border border-primary/10 flex items-center gap-4">
+                  <div>
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Quick Actions</p>
+                    <p className="text-sm text-muted-foreground">Manage your stock in bulk</p>
+                  </div>
+                  <BulkImport onSuccess={() => loadInventoryData(showLowStock)} />
+                </div>
+              </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button 
-                variant="outline" 
-                onClick={sendLowStockEmail} 
-                disabled={isSendingEmail || !inventoryData || inventoryData.summary.lowStockCount === 0}
-                className="flex items-center gap-2"
-              >
-                <Mail className="h-4 w-4" />
-                {isSendingEmail ? "Sending..." : "Send Low Stock Email"}
-              </Button>
-              <Button variant={showLowStock ? "default" : "outline"} onClick={() => setShowLowStock(!showLowStock)}>
-                {showLowStock ? "Show All" : "Show Low Stock"}
-              </Button>
-            </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => onTabChange?.("delivery-challan")}
+                  className="flex items-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
+                >
+                  <Truck className="h-4 w-4" />
+                  Create Challan
+                </Button>
+                <div className="border-l mx-1 hidden sm:block"></div>
+                <Button 
+                  variant="outline" 
+                  onClick={sendLowStockEmail} 
+                  disabled={isSendingEmail || !inventoryData || inventoryData.summary.lowStockCount === 0}
+                  className="flex items-center gap-2"
+                >
+                  <Mail className="h-4 w-4" />
+                  {isSendingEmail ? "Sending..." : "Send Low Stock Email"}
+                </Button>
+                <Button variant={showLowStock ? "default" : "outline"} onClick={() => setShowLowStock(!showLowStock)}>
+                  {showLowStock ? "Show All" : "Show Low Stock"}
+                </Button>
+              </div>
           </div>
           {emailMessage && (
             <div className="space-y-1">
