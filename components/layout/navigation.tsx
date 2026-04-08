@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ShoppingCart, Package, Users, FileText, BarChart3, Settings, Clock, Menu, X, Tag, Boxes, Upload } from "lucide-react"
+import { ShoppingCart, Package, Users, FileText, BarChart3, Settings, Clock, Menu, X, Tag, Boxes, Upload, Truck, FileStack, FilePlus, Printer } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { cn } from "@/lib/utils"
 
@@ -20,6 +20,8 @@ export function Navigation({ activeTab, onTabChange, isSidebarOpen, onSidebarTog
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const navigationItems = [
+    { id: "delivery-challan-create", label: "Create Bulk Order", icon: FilePlus, roles: ["admin", "cashier"] },
+    { id: "delivery-challan-print", label: "Print Bulk Order", icon: Printer, roles: ["admin", "cashier"] },
     { id: "billing", label: "Billing", icon: ShoppingCart, roles: ["admin", "cashier"] },
     { id: "client-data", label: "Client Data", icon: Upload, roles: ["admin"] },
     { id: "products", label: "Products", icon: Package, roles: ["admin"] },
@@ -32,8 +34,12 @@ export function Navigation({ activeTab, onTabChange, isSidebarOpen, onSidebarTog
     { id: "settings", label: "Settings", icon: Settings, roles: ["admin"] },
   ]
 
-  const userRole = isAdmin ? "admin" : "cashier"
-  const availableItems = navigationItems.filter((item) => item.roles.includes(userRole))
+  const userRole = (user?.role || "cashier").toLowerCase()
+  const availableItems = navigationItems.filter((item) => {
+    // Force visibility for Bulk Order items for both roles
+    if (item.id.includes("delivery-challan")) return true
+    return item.roles.some(role => role.toLowerCase() === userRole)
+  })
 
   const NavButton = ({ item }: { item: (typeof navigationItems)[0] }) => {
     const Icon = item.icon
@@ -91,7 +97,7 @@ export function Navigation({ activeTab, onTabChange, isSidebarOpen, onSidebarTog
         <div className="p-4 space-y-2">
           <div className="flex items-center justify-between mb-4">
             {isSidebarOpen && (
-              <h2 className="text-lg font-semibold text-white">Navigation</h2>
+              <h2 className="text-lg font-semibold text-white">Menu</h2>
             )}
             <Button 
               variant="ghost" 
@@ -102,9 +108,11 @@ export function Navigation({ activeTab, onTabChange, isSidebarOpen, onSidebarTog
               {isSidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </Button>
           </div>
-          {isSidebarOpen && availableItems.map((item) => (
-            <NavButton key={item.id} item={item} />
-          ))}
+          <div className="space-y-1 mt-2">
+            {isSidebarOpen && availableItems.map((item) => (
+              <NavButton key={item.id} item={item} />
+            ))}
+          </div>
           {!isSidebarOpen && (
             <div className="space-y-2">
               {availableItems.map((item) => (

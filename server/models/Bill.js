@@ -152,6 +152,11 @@ const billSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    type: {
+      type: String,
+      enum: ["bill", "challan"],
+      default: "bill",
+    },
   },
   {
     timestamps: true,
@@ -171,7 +176,8 @@ billSchema.pre("validate", async function (next) {
         },
       })
       const random = Math.floor(Math.random() * 10000);
-this.billNumber = `BILL${dateStr}${String(random).padStart(4,"0")}`;
+      const prefix = this.type === 'challan' ? 'DC' : 'BILL';
+      this.billNumber = `${prefix}${dateStr}${String(random).padStart(4,"0")}`;
 
     } catch (err) {
       return next(err)

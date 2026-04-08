@@ -8,11 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, FileText, Loader2, Printer, RefreshCw, Trash2 } from "lucide-react"
 import { apiClient, type Bill, type BillsResponse } from "@/lib/api"
-import { BillSearch, type BillSearchFilters } from "./bill-search"
-import { BillDetailsDialog } from "./bill-details-dialog"
+import { BillSearch, type BillSearchFilters } from "../bills/bill-search"
+import { BillDetailsDialog } from "../bills/bill-details-dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 
-export function BillList() {
+export function ChallanList() {
   const [bills, setBills] = useState<Bill[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
@@ -31,7 +31,7 @@ export function BillList() {
       const params = {
         page,
         limit: 20,
-        type: "bill",
+        type: "challan",
         ...searchFilters,
       }
 
@@ -119,10 +119,10 @@ export function BillList() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Bill History
+                Delivery Challan History
               </CardTitle>
               <CardDescription>
-                {totalBills > 0 ? `Showing ${bills.length} of ${totalBills} bills` : "No bills found"}
+                {totalBills > 0 ? `Showing ${bills.length} of ${totalBills} challans` : "No challans found"}
               </CardDescription>
             </div>
             <Button variant="outline" onClick={() => loadBills(currentPage)} disabled={isLoading}>
@@ -136,7 +136,7 @@ export function BillList() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Bill Number</TableHead>
+                  <TableHead>Challan Number</TableHead>
                   <TableHead>Date & Time</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Items</TableHead>
@@ -152,13 +152,13 @@ export function BillList() {
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                      Loading bills...
+                      Loading challans...
                     </TableCell>
                   </TableRow>
                 ) : bills.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                      No bills found matching your criteria
+                      No challans found matching your criteria
                     </TableCell>
                   </TableRow>
                 ) : (

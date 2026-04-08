@@ -861,6 +861,7 @@ export interface Bill {
   status: "completed" | "cancelled" | "refunded"
   createdAt: string
   updatedAt: string
+  type: "bill" | "challan"
 }
 
 export interface CreateBillRequest {
@@ -907,6 +908,7 @@ export interface CreateBillRequest {
       upiId?: string
     }
   }>
+  type?: "bill" | "challan"
 }
 
 export interface BillsResponse {

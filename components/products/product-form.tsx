@@ -281,12 +281,12 @@ export function ProductForm({ product, isOpen, onClose, onSuccess, initialValues
                 onValueChange={(value) => handleInputChange("category", value)}
                 disabled={isLoading}
               >
-                <SelectTrigger className={isTamil ? "font-sathayam" : ""}>
+                <SelectTrigger className={isTamil ? "font-sathayam text-lg" : ""}>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className={isTamil ? "font-sathayam" : ""}>
                   {categories.map((category) => (
-                    <SelectItem key={category} value={category} className={isTamil ? "font-sathayam" : ""}>
+                    <SelectItem key={category} value={category} className={isTamil ? "text-lg" : ""}>
                       {category}
                     </SelectItem>
                   ))}

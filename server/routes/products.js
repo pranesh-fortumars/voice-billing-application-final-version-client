@@ -269,7 +269,7 @@ router.get("/template/download", auth, adminAuth, (req, res) => {
     const data = [
       {
         "Product Code": "PR12",
-        "Product Name": "Biscuit",
+        "Product Name": "Biscuit (பிஸ்கட்)",
         "Barcode": "8901234567890",
         "Category": "Snacks",
         "Unit": "pcs",
@@ -278,7 +278,21 @@ router.get("/template/download", auth, adminAuth, (req, res) => {
         "Base Cost": 15,
         "Stock": 100,
         "Variant Size": "100g",
-        "Variant SKU": "BIS001",
+        "Variant SKU": "PR12-100G",
+        "Is Active": "Yes"
+      },
+      {
+        "Product Code": "PR13",
+        "Product Name": "Milk (பால்)",
+        "Barcode": "8901234567891",
+        "Category": "Dairy",
+        "Unit": "packet",
+        "Tax Rate %": 0,
+        "Base Price": 25,
+        "Base Cost": 22,
+        "Stock": 50,
+        "Variant Size": "500ml",
+        "Variant SKU": "PR13-500ML",
         "Is Active": "Yes"
       }
     ];
@@ -368,7 +382,7 @@ router.post("/import", auth, adminAuth, upload.single("file"), async (req, res) 
         results.success++;
       } catch (err) {
         results.failed++;
-        results.errors.push(`Error processing ${item["Product Name (Required)"]}: ${err.message}`);
+        results.errors.push(`Error processing ${item["Product Name"]}: ${err.message}`);
       }
     }
 

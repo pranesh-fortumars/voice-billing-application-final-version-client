@@ -224,13 +224,14 @@ export function BillDetailsDialog({ bill, isOpen, onClose }: BillDetailsDialogPr
     // Generate receipt content as plain text with basic formatting
     let receiptContent = `
        *************************************
+       * ${centerText(billData.type === 'challan' ? 'DELIVERY CHALLAN' : 'TAX INVOICE', 35)} *
+       *************************************
        *${centerText('SUPERMARKET STORE', 35)}*
        *${centerText('123 Main Street, City', 35)}*
        *${centerText('State, Country - 123456', 35)}*
        *${centerText('Phone: +1 234 567 8900', 35)}*
        *************************************
        
-       BILL #: ${billData.billNumber}
        DATE:  ${formatDate(billData.createdAt)}
        CASHIER: ${billData.cashierName}
        -------------------------------------
@@ -275,8 +276,6 @@ export function BillDetailsDialog({ bill, isOpen, onClose }: BillDetailsDialogPr
     }
 
   
-    receiptContent += `     ${createAlignedRow('TOTAL TAX:', formatCurrency(billData.totalTax))}\n`
-  
     if (Math.abs(billData.roundOff) > 0.01) {
       const roundOffAmount = (billData.roundOff > 0 ? '+' : '') + formatCurrency(billData.roundOff)
       receiptContent += `     ${createAlignedRow('ROUND OFF:', roundOffAmount)}\n`
@@ -307,7 +306,7 @@ export function BillDetailsDialog({ bill, isOpen, onClose }: BillDetailsDialogPr
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Bill ${billData.billNumber}</title>
+        <title>${billData.type === 'challan' ? 'Delivery Challan' : 'Supermarket Receipt'}</title>
         <style>
           * {
             margin: 0;
@@ -405,7 +404,9 @@ export function BillDetailsDialog({ bill, isOpen, onClose }: BillDetailsDialogPr
             </div>
           </div>
           <div className="text-center">
-            <DialogTitle className="text-2xl font-bold mb-2">Supermarket</DialogTitle>
+            <DialogTitle className="text-2xl font-bold mb-2">
+              {bill.type === 'challan' ? 'Delivery Challan' : 'Supermarket'}
+            </DialogTitle>
             <DialogDescription className="text-sm">
               123 Main Street, City<br />
               State, Country - 123456<br />
@@ -420,12 +421,10 @@ export function BillDetailsDialog({ bill, isOpen, onClose }: BillDetailsDialogPr
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
               <div>
-                <h3 className="font-semibold mb-2">Bill Information</h3>
+                <h3 className="font-semibold mb-2">
+                  {bill.type === 'challan' ? 'Challan Information' : 'Bill Information'}
+                </h3>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Bill Number:</span>
-                    <span className="font-mono font-medium">{bill.billNumber}</span>
-                  </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Date & Time:</span>
                     <span className="text-right">{new Date(bill.createdAt).toLocaleString()}</span>
@@ -493,7 +492,6 @@ export function BillDetailsDialog({ bill, isOpen, onClose }: BillDetailsDialogPr
                     <TableHead className="text-center w-[8%] px-0">Qty</TableHead>
                     <TableHead className="text-right w-[12%]">Rate</TableHead>
                     <TableHead className="text-right w-[12%]">Discount</TableHead>
-                    <TableHead className="text-right w-[12%]">Tax</TableHead>
                     <TableHead className="text-right w-[14%] font-semibold">Amount</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -519,9 +517,6 @@ export function BillDetailsDialog({ bill, isOpen, onClose }: BillDetailsDialogPr
                         ) : (
                           "-"
                         )}
-                      </TableCell>
-                      <TableCell className="text-right align-middle py-2">
-                        {item.taxAmount > 0 ? formatCurrency(item.taxAmount) : "-"}
                       </TableCell>
                       <TableCell className="text-right align-middle py-2 font-semibold">{formatCurrency(item.totalAmount)}</TableCell>
                     </TableRow>
@@ -672,10 +667,6 @@ export function BillDetailsDialog({ bill, isOpen, onClose }: BillDetailsDialogPr
                           <span className="font-medium text-right text-emerald-600">-{formatCurrency(loyaltyDiscountAmount)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total Tax:</span>
-                        <span className="font-medium text-right">{formatCurrency(calculations.totalTax)}</span>
-                      </div>
                       {Math.abs(roundOff) > 0.01 && (
                         <div className="flex justify-between items-center">
                           <span className="text-muted-foreground">Round Off:</span>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShoppingCart, RefreshCw, FileText, Wallet, Gift, Star, Loader2, Check, Sparkles, Search } from "lucide-react"
+import { ShoppingCart, RefreshCw, FileText, Wallet, Gift, Star, Loader2, Check, Sparkles, Search, Truck } from "lucide-react"
 import { ProductSearch } from "./product-search"
 import { BillingTable, type BillItem } from "./billing-table"
 import { BillingSummary } from "./billing-summary"
@@ -159,7 +159,11 @@ function toTitleCase(value: string) {
     .join(" ")
 }
 
-export function POSBilling() {
+export interface POSBillingProps {
+  mode?: "bill" | "challan"
+}
+
+export function POSBilling({ mode = "bill" }: POSBillingProps) {
   const { toast } = useToast()
   const { language } = useLanguage()
   const [billItems, setBillItems] = useState<BillItem[]>([])
@@ -931,7 +935,8 @@ export function POSBilling() {
         paymentMethod: paymentData.paymentMethod,
         paymentDetails: Object.keys(paymentDetails).length > 0 ? paymentDetails : undefined,
         paymentBreakdown: paymentBreakdown.length > 0 ? paymentBreakdown : undefined,
-        applyLoyaltyDiscount: loyaltyStatus?.isEligible || false
+        applyLoyaltyDiscount: loyaltyStatus?.isEligible || false,
+        type: mode
       }
 
       const bill = await apiClient.createBill(billData)
@@ -940,7 +945,7 @@ export function POSBilling() {
       if (customerInfo.email && customerInfo.email.trim() !== '') {
         try {
           await apiClient.sendBillByEmail(bill._id, customerInfo.email)
-          let successMessage = `Bill ${bill.billNumber} created successfully and sent via email to ${customerInfo.email}!`
+          let successMessage = `${mode === "challan" ? "Delivery Challan" : "Bill"} created successfully and sent via email to ${customerInfo.email}!`
           if (loyaltyStatus?.isEligible) {
             successMessage += ` 🎉 2% Loyalty discount applied!`
           }
@@ -949,7 +954,7 @@ export function POSBilling() {
         } catch (emailError) {
           console.error('Failed to send email:', emailError)
           // Still show success for bill creation, but note email failure
-          let successMessage = `Bill ${bill.billNumber} created successfully! (Email delivery failed)`
+          let successMessage = `${mode === "challan" ? "Delivery Challan" : "Bill"} created successfully! (Email delivery failed)`
           if (loyaltyStatus?.isEligible) {
             successMessage += ` 🎉 2% Loyalty discount applied!`
           }
@@ -957,7 +962,7 @@ export function POSBilling() {
           setLastBillId(bill._id)
         }
       } else {
-        let successMessage = `Bill ${bill.billNumber} created successfully!`
+        let successMessage = `${mode === "challan" ? "Delivery Challan" : "Bill"} created successfully!`
         if (loyaltyStatus?.isEligible) {
           successMessage += ` 🎉 2% Loyalty discount applied!`
         }
@@ -1001,6 +1006,20 @@ export function POSBilling() {
                   <AlertDescription>{success}</AlertDescription>
                 </Alert>
               )}
+
+              {/* Mode Indicator Banner */}
+              {mode === "challan" && (
+                <div className="bg-blue-600 text-white px-4 py-2 rounded-lg mb-4 flex items-center justify-between shadow-md">
+                  <div className="flex items-center gap-2">
+                    <Truck className="h-5 w-5" />
+                    <span className="font-bold uppercase tracking-wider text-sm">Delivery Challan Mode Active</span>
+                  </div>
+                  <Badge variant="secondary" className="text-blue-700 bg-white border-none text-[10px] uppercase font-bold px-2 py-0.5">
+                    Bulk Orders
+                  </Badge>
+                </div>
+              )}
+
 
               {/* Product Search with Action Buttons */}
               <div className="flex-shrink-0 space-y-4">
@@ -1227,7 +1246,7 @@ export function POSBilling() {
                   <CardHeader className="pb-1">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <ShoppingCart className="h-5 w-5" />
-                      Bill Summary
+                      {mode === "challan" ? "Challan Summary" : "Bill Summary"}
                       {billItems.length > 0 && (
                         <span className="ml-auto text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
                           {billItems.length} items
@@ -1248,7 +1267,7 @@ export function POSBilling() {
                     <CardHeader className="pb-1">
                       <CardTitle className="text-lg flex items-center gap-2">
                         <Wallet className="h-5 w-5" />
-                        Payment
+                        {mode === "challan" ? "Delivery Info" : "Payment"}
                         <span className="ml-auto text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
                           ₹{Math.round(finalGrandTotal).toLocaleString('en-IN')}
                         </span>
