@@ -208,7 +208,6 @@ const generateBillHTML = (bill, language = 'en') => {
       <div class="separator mt-1">==============================</div>
       
       <div class="bill-info">
-        <div>${t('bill')} #: ${bill.billNumber}</div>
         <div>${t('date')}: ${formatDate(bill.createdAt)}</div>
         <div>${t('cashier')}: ${bill.cashierName}</div>
       </div>

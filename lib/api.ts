@@ -398,46 +398,6 @@ class ApiClient {
   }
 
   // -------------------
-  // Client Data Intake API methods
-  // -------------------
-  async getClientData() {
-    return this.request<ClientData>("/client-data/me")
-  }
-
-  async updateClientData(payload: Partial<ClientData>) {
-    return this.request<ClientData>("/client-data/me", {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    })
-  }
-
-  async submitClientData(options?: { autoApprove?: boolean }) {
-    return this.request<ClientData>("/client-data/me/submit", {
-      method: "POST",
-      body: JSON.stringify(options ?? {}),
-    })
-  }
-
-  async uploadClientDataFile(formData: FormData) {
-    return this.request<ClientData>("/client-data/upload", {
-      method: "POST",
-      body: formData,
-      headers: {}, // Let browser set Content-Type for multipart/form-data
-    })
-  }
-
-  async listClientData() {
-    return this.request<ClientData[]>("/client-data")
-  }
-
-  async updateClientDataStatus(id: string, payload: { status: ClientDataStatus; notes?: string }) {
-    return this.request<ClientData>(`/client-data/${id}/status`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    })
-  }
-
-  // -------------------
   // Employee API methods
   // -------------------
   async getEmployees(params?: {
@@ -1020,17 +980,6 @@ export interface TopProductByCategory {
   avgPrice: number
 }
 
-export interface TopProduct {
-  _id: {
-    productId: string
-    productName: string
-    productCode: string
-  }
-  totalRevenue: number
-  totalQuantity: number
-  totalOrders: number
-  avgPrice: number
-}
 
 export interface CategoryTopProducts {
   category: string
