@@ -192,12 +192,13 @@ const generateBillHTML = (bill, language = 'en') => {
   };
 
   // Generate receipt content as HTML for better alignment
-  const customerName = bill.customer?.name || bill.customerInfo?.name || t('walk_in_customer');
+  const customerName = (typeof bill.customer === 'string' ? bill.customer : bill.customer?.name) || bill.customerInfo?.name || t('walk_in_customer');
   const customerPhone = bill.customer?.phone || bill.customerInfo?.phone || '';
   const customerEmail = bill.customer?.email || bill.customerInfo?.email || '';
 
   const receiptHTML = `
     <div class="receipt">
+      <div class="pillaiyar-suli">௳</div>
       <div class="header">
         <div class="store-name">${t('supermarket_store')}</div>
         <div class="store-address">${language === 'ta' ? t('address_line_1') : '123 Main Street, City'}</div>
@@ -215,7 +216,7 @@ const generateBillHTML = (bill, language = 'en') => {
       <div class="separator">------------------------------</div>
       
       <div class="customer-info">
-        <div>${t('customer')}: ${customerName}</div>
+        <div>${t('customer')}: <strong>${customerName}</strong></div>
         ${customerPhone ? `<div>${t('phone')}: ${customerPhone}</div>` : ''}
         ${customerEmail ? `<div>${t('email')}: ${customerEmail}</div>` : ''}
       </div>
@@ -328,6 +329,7 @@ const generateBillHTML = (bill, language = 'en') => {
 
         .receipt { width: 100%; border:0px solid #000; }
         
+        .pillaiyar-suli { text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 2px; }
         .header { text-align: center; margin-bottom: 2px; }
         .store-name { font-weight: bold; font-size: 14px; margin-bottom: 2px; }
         .store-address, .store-phone { font-size: 10px; margin-bottom: 1px; }
