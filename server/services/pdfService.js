@@ -223,28 +223,34 @@ const generateBillHTML = (bill, language = 'en') => {
       
       <div class="separator">------------------------------</div>
       
-      <div class="items-header">${t('items')}</div>
       <table class="items-table">
-        ${bill.items.map(item => {
-          let baseName = item.product?.name || item.productName || 'Unknown Item';
-          if (language === 'ta' && (item.product?.nameTamil || item.productNameTamil)) {
-            baseName = item.product?.nameTamil || item.productNameTamil;
-          }
-          const sizeInfo = item.size || item.variantSize ? `(${item.size || item.variantSize})` : '';
-          const displayName = `${baseName} ${sizeInfo}`.trim();
-          const itemTotal = formatCurrency(item.totalAmount || (item.rate * item.quantity));
-          const qtyRate = `${item.quantity}x${formatCurrency(item.rate)}`;
-          
-          return `
-            <tr>
-              <td>
-                <div class="item-name">${displayName}</div>
-                <div class="item-qty">${qtyRate}</div>
-              </td>
-              <td class="item-price">${itemTotal}</td>
-            </tr>
-          `;
-        }).join('')}
+        <thead>
+          <tr class="table-header">
+            <th class="text-left">${t('items')}</th>
+            <th class="text-center">QTY</th>
+            <th class="text-right">PRICE</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${bill.items.map(item => {
+            let baseName = item.product?.name || item.productName || 'Unknown Item';
+            if (language === 'ta' && (item.product?.nameTamil || item.productNameTamil)) {
+              baseName = item.product?.nameTamil || item.productNameTamil;
+            }
+            const sizeInfo = item.size || item.variantSize ? `(${item.size || item.variantSize})` : '';
+            const displayName = `${baseName} ${sizeInfo}`.trim();
+            const itemTotal = formatCurrency(item.totalAmount || (item.rate * item.quantity));
+            const qtyStr = `${item.quantity}`;
+            
+            return `
+              <tr>
+                <td class="text-left item-name">${displayName}</td>
+                <td class="text-center">${qtyStr}</td>
+                <td class="text-right">${itemTotal}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
       </table>
       
       <div class="separator mt-1">------------------------------</div>
@@ -297,6 +303,7 @@ const generateBillHTML = (bill, language = 'en') => {
       <div class="separator mt-1">------------------------------</div>
       
       <div class="footer">
+        <div class="customer-footer">Customer: ${customerName}</div>
         <div class="thank-you">${t('thank_you')}</div>
         <div class="visit-again">${t('please_visit_again')}</div>
         ${bill.status === 'completed' ? `<div class="paid-status">${t('paid')}</div>` : ''}
@@ -342,9 +349,14 @@ const generateBillHTML = (bill, language = 'en') => {
         
         .items-header { font-weight: bold; font-size: 11px; margin: 4px 0; padding-bottom: 2px; }
         .items-table, .summary-table, .payment-table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        .items-table td, .summary-table td, .payment-table td { padding: 2px 0; vertical-align: top; }
+        .items-table td, .items-table th, .summary-table td, .payment-table td { padding: 4px 0; vertical-align: top; }
         
-        .item-name { font-weight: 500; }
+        .table-header { border-bottom: 1px dashed black; font-weight: bold; }
+        .text-left { text-align: left; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        
+        .item-name { font-weight: 500; max-width: 45mm; overflow: hidden; }
         .item-qty { font-size: 8px; color: #444; }
         .item-price { text-align: right; width: 30%; }
         
@@ -353,6 +365,7 @@ const generateBillHTML = (bill, language = 'en') => {
         .total-row td { border-top: 1px dashed black; border-bottom: 1px dashed black; padding: 4px 0 !important; }
         
         .footer { text-align: center; font-size: 11px; margin: 8px 0; }
+        .customer-footer { font-weight: bold; margin-bottom: 6px; border-top: 1px dotted #ccc; padding-top: 4px; }
         .thank-you { font-weight: bold; margin-bottom: 2px; }
         .paid-status { font-weight: bold; margin-top: 4px; }
       </style>
