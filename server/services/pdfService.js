@@ -266,10 +266,6 @@ const generateBillHTML = (bill, language = 'en') => {
             <td>-${formatCurrency(bill.loyaltyDiscount.discountAmount)}</td>
           </tr>
         ` : ''}
-        <tr>
-          <td>${t('total_tax')}:</td>
-          <td>${formatCurrency(bill.totalTax)}</td>
-        </tr>
         ${Math.abs(bill.roundOff) > 0.01 ? `
           <tr>
             <td>${t('round_off')}:</td>
