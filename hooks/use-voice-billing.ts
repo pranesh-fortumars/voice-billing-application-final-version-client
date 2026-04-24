@@ -89,8 +89,21 @@ export function useVoiceBilling({
   const analyserRef = useRef<AnalyserNode | null>(null)
   const rafRef = useRef<number>()
   const [supported, setSupported] = useState<boolean>(false)
-  const [status, setStatus] = useState<VoiceSessionStatus>("idle")
-  const [error, setError] = useState<string | null>(null)
+  const [status, _setStatus] = useState<VoiceSessionStatus>("idle")
+  const [error, _setError] = useState<string | null>(null)
+  
+  const statusRef = useRef<VoiceSessionStatus>("idle")
+  const errorRef = useRef<string | null>(null)
+
+  const setStatus = useCallback((s: VoiceSessionStatus) => {
+    statusRef.current = s
+    _setStatus(s)
+  }, [])
+
+  const setError = useCallback((e: string | null) => {
+    errorRef.current = e
+    _setError(e)
+  }, [])
   const [transcripts, setTranscripts] = useState<TranscriptSegment[]>([])
   const [inputLevel, setInputLevel] = useState(0)
   const pausedRef = useRef(false)
@@ -223,7 +236,10 @@ export function useVoiceBilling({
       
       let message = event.error
       if (event.error === "network") {
-        message = "Speech Recognition Network Error: Cannot reach the speech-to-text service. Check your internet connection or browser settings."
+        message = "Speech Recognition Network Error: Cannot reach the speech-to-text service. Attempting to reconnect..."
+        setError(message)
+        // Don't set status to error immediately, give it a chance to auto-restart in onend
+        return
       } else if (event.error === "not-allowed" || event.error === "service-not-allowed") {
         message = "Speech access denied. Please check microphone permissions."
       } else if (event.error === "no-speech") {
@@ -242,17 +258,32 @@ export function useVoiceBilling({
         return
       }
 
-      // Auto-restart if we are supposed to be listening
-      if (status === "listening" || status === "processing") {
-        try {
-          recognition.start()
-          return
-        } catch (err) {
-          console.warn("Auto-restart failed", err)
-        }
+      const currentStatus = statusRef.current
+      const currentError = errorRef.current
+
+      // Auto-restart if we are supposed to be listening or if we just had a network flicker
+      if (currentStatus === "listening" || currentStatus === "processing" || (currentStatus === "idle" && currentError?.includes("Network Error"))) {
+        console.log("Attempting to restart speech recognition...")
+        const restartTimer = setTimeout(() => {
+          try {
+            if (recognitionRef.current && !pausedRef.current) {
+              recognitionRef.current.start()
+              setError(null)
+              setStatus("listening")
+            }
+          } catch (err) {
+            console.warn("Auto-restart failed", err)
+            setStatus("error")
+            setError("Network connection lost. Please check your internet and try again.")
+          }
+        }, 3000) // Wait 3 seconds before retrying
+        
+        return () => clearTimeout(restartTimer)
       }
 
-      setStatus("idle")
+      if (currentStatus !== "error") {
+        setStatus("idle")
+      }
     }
 
     recognitionRef.current = recognition

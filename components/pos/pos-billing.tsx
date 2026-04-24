@@ -683,6 +683,11 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
             results = await apiClient.getProducts({ search: term, active: true })
           } catch (err) {
             console.error("Voice lookup failed for term:", term, err)
+            toast({
+              title: "Server connection failed",
+              description: "Could not reach the database. Please ensure the backend server is running.",
+              variant: "destructive",
+            })
           }
 
           if (results.length === 0) {
