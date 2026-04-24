@@ -49,6 +49,7 @@ export function ProductForm({ product, isOpen, onClose, onSuccess, initialValues
   const [formData, setFormData] = useState({
     code: "",
     name: "",
+    nameTamil: "",
     barcode: "",
     category: "",
     basePrice: "",
@@ -74,6 +75,7 @@ export function ProductForm({ product, isOpen, onClose, onSuccess, initialValues
   const buildFormDataFromInitial = (values?: Partial<Product>) => ({
     code: values?.code ?? "",
     name: values?.name ?? "",
+    nameTamil: values?.nameTamil ?? "",
     barcode: values?.barcode ?? "",
     category: values?.category ?? "",
     basePrice: values?.basePrice !== undefined && values?.basePrice !== null ? values.basePrice.toString() : "",
@@ -145,6 +147,7 @@ export function ProductForm({ product, isOpen, onClose, onSuccess, initialValues
       const productData = {
         code: formData.code.toUpperCase(),
         name: formData.name,
+        nameTamil: formData.nameTamil || undefined,
         barcode: formData.barcode || undefined,
         category: formData.category,
         basePrice: Number.parseFloat(formData.basePrice),
@@ -261,13 +264,24 @@ export function ProductForm({ product, isOpen, onClose, onSuccess, initialValues
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="name">Product Name *</Label>
+            <Label htmlFor="name">Product Name (English) *</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
               placeholder="Enter product name"
               required
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="nameTamil">Product Name (Tamil)</Label>
+            <Input
+              id="nameTamil"
+              value={formData.nameTamil}
+              onChange={(e) => handleInputChange("nameTamil", e.target.value)}
+              placeholder="பெயரை உள்ளிடவும்"
               disabled={isLoading}
               className={isTamil ? "font-sathayam text-lg" : ""}
             />

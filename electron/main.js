@@ -3,8 +3,30 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 let mainWindow;
+let serverProcess;
+
+function startServer() {
+    const serverPath = path.join(__dirname, '../server/app.js');
+    console.log('Starting server from:', serverPath);
+    
+    serverProcess = spawn('node', [serverPath], {
+        cwd: path.join(__dirname, '../server'),
+        env: { ...process.env, PORT: 5001 },
+        shell: true
+    });
+
+    serverProcess.stdout.on('data', (data) => {
+        console.log(`Server: ${data}`);
+    });
+
+    serverProcess.stderr.on('data', (data) => {
+        console.error(`Server Error: ${data}`);
+    });
+}
 
 function createWindow() {
+    startServer();
+
     mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
@@ -17,7 +39,6 @@ function createWindow() {
     });
 
     // In production, load the static file.
-    // In development, might load localhost:3000 if needed, but we target production here.
     const startUrl = path.join(__dirname, '../out/index.html');
 
     // Load the static export
@@ -31,6 +52,9 @@ function createWindow() {
 app.on('ready', createWindow);
 
 app.on('window-all-closed', function () {
+    if (serverProcess) {
+        serverProcess.kill();
+    }
     if (process.platform !== 'darwin') {
         app.quit();
     }

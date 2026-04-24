@@ -53,6 +53,10 @@ const productSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    nameTamil: {
+      type: String,
+      trim: true,
+    },
     barcode: {
       type: String,
       unique: true,

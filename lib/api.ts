@@ -724,6 +724,7 @@ export interface Product {
   _id: string
   code: string
   name: string
+  nameTamil?: string
   barcode?: string
   category: string
   basePrice: number

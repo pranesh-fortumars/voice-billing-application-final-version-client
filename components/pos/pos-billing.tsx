@@ -22,7 +22,7 @@ import { VOICE_SYNONYMS } from "@/lib/voice-synonyms"
 import { useLanguage } from "@/contexts/language-context"
 import type { Language } from "@/contexts/language-context"
 
-const VOICE_CONFIDENCE_THRESHOLD = 0.55
+const VOICE_CONFIDENCE_THRESHOLD = 0.4
 const MAX_VOICE_SUGGESTIONS = 3
 const AUTO_APPLY_SUGGESTION_SCORE = 0.65
 const MIN_SUGGESTION_SCORE = 0.3
@@ -64,6 +64,7 @@ function computeVoiceMatchScore(product: Product, variant: ProductVariant, norma
 
   const candidates = [
     product.name,
+    product.nameTamil,
     product.code,
     product.category,
     variant.size,
@@ -285,16 +286,20 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
         } : undefined
       })
 
-      // Update product name based on designated language if synonym exists
+      // Update product name based on designated language if synonym or nameTamil exists
       if (language === "ta" || language === "bilingual") {
-        const synonym = VOICE_SYNONYMS.find(s =>
-          normalizeVoiceText(s.canonical) === normalizeVoiceText(product.name) ||
-          s.matchers.some(m => normalizeVoiceText(m) === normalizeVoiceText(product.name))
-        )
-        if (synonym) {
-          const tamilMatcher = synonym.matchers.find(m => /[\u0b80-\u0bff]/.test(m))
-          if (tamilMatcher) {
-            newItem.product = { ...product, name: tamilMatcher }
+        if (product.nameTamil) {
+          newItem.product = { ...product, name: product.nameTamil }
+        } else {
+          const synonym = VOICE_SYNONYMS.find(s =>
+            normalizeVoiceText(s.canonical) === normalizeVoiceText(product.name) ||
+            s.matchers.some(m => normalizeVoiceText(m) === normalizeVoiceText(product.name))
+          )
+          if (synonym) {
+            const tamilMatcher = synonym.matchers.find(m => /[\u0b80-\u0bff]/.test(m))
+            if (tamilMatcher) {
+              newItem.product = { ...product, name: tamilMatcher }
+            }
           }
         }
       }

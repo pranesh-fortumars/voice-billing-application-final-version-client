@@ -145,8 +145,8 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
                 <div className="flex items-center justify-between p-3 bg-muted/50">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className={cn("font-medium", isTamilText(product.name) && "font-sathayam text-lg")}>
-                        {product.name}
+                      <span className={cn("font-medium", (isTamilText(product.name) || product.nameTamil) && "font-sathayam text-lg")}>
+                        {product.nameTamil ? `${product.name} (${product.nameTamil})` : product.name}
                       </span>
                       <Badge variant="outline" className="text-xs">
                         {product.code}

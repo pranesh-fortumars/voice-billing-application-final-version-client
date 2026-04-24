@@ -21,6 +21,7 @@ router.get("/", auth, async (req, res) => {
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: "i" } },
+        { nameTamil: { $regex: search, $options: "i" } },
         { code: { $regex: search, $options: "i" } },
         { barcode: { $regex: search, $options: "i" } },
       ]
