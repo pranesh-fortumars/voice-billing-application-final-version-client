@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { io, Socket } from "socket.io-client"
 import type { Language } from "@/contexts/language-context"
 
 type SpeechRecognitionAlternative = {
@@ -58,6 +59,7 @@ interface UseVoiceBillingOptions {
   language: Language
   onTranscript?: (transcript: string, confidence: number) => void
   deviceId?: string
+  preferOffline?: boolean
 }
 
 interface UseVoiceBillingResult {
@@ -70,6 +72,8 @@ interface UseVoiceBillingResult {
   resume: () => void
   stop: () => void
   inputLevel: number
+  isOffline: boolean
+  toggleOffline: () => void
 }
 
 const LANGUAGE_TO_LOCALE: Record<Language, string> = {
@@ -82,18 +86,26 @@ export function useVoiceBilling({
   language,
   onTranscript,
   deviceId,
+  preferOffline = false,
 }: UseVoiceBillingOptions): UseVoiceBillingResult {
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
+  const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null)
+  const socketRef = useRef<Socket | null>(null)
   const rafRef = useRef<number>()
+  
   const [supported, setSupported] = useState<boolean>(false)
+  const [isOffline, setIsOffline] = useState<boolean>(preferOffline)
   const [status, _setStatus] = useState<VoiceSessionStatus>("idle")
   const [error, _setError] = useState<string | null>(null)
+  const [transcripts, setTranscripts] = useState<TranscriptSegment[]>([])
+  const [inputLevel, setInputLevel] = useState(0)
   
   const statusRef = useRef<VoiceSessionStatus>("idle")
   const errorRef = useRef<string | null>(null)
+  const pausedRef = useRef(false)
 
   const setStatus = useCallback((s: VoiceSessionStatus) => {
     statusRef.current = s
@@ -104,9 +116,6 @@ export function useVoiceBilling({
     errorRef.current = e
     _setError(e)
   }, [])
-  const [transcripts, setTranscripts] = useState<TranscriptSegment[]>([])
-  const [inputLevel, setInputLevel] = useState(0)
-  const pausedRef = useRef(false)
 
   const locale = useMemo(() => LANGUAGE_TO_LOCALE[language] ?? "en-IN", [language])
   const deviceConstraint = useMemo(() => {
@@ -118,6 +127,10 @@ export function useVoiceBilling({
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current)
       rafRef.current = undefined
+    }
+    if (scriptProcessorRef.current) {
+      scriptProcessorRef.current.disconnect()
+      scriptProcessorRef.current = null
     }
     analyserRef.current?.disconnect()
     analyserRef.current = null
@@ -180,7 +193,7 @@ export function useVoiceBilling({
       setStatus("error")
       return null
     }
-  }, [deviceConstraint, pumpInputLevel])
+  }, [deviceConstraint, pumpInputLevel, setError, setStatus])
 
   const ensureRecognitionInstance = useCallback(() => {
     if (typeof window === "undefined") return null
@@ -238,12 +251,11 @@ export function useVoiceBilling({
       if (event.error === "network") {
         message = "Speech Recognition Network Error: Cannot reach the speech-to-text service. Attempting to reconnect..."
         setError(message)
-        // Don't set status to error immediately, give it a chance to auto-restart in onend
         return
       } else if (event.error === "not-allowed" || event.error === "service-not-allowed") {
         message = "Speech access denied. Please check microphone permissions."
       } else if (event.error === "no-speech") {
-        return // Ignore "no-speech" as it's common during silences
+        return 
       } else if (event.error === "audio-capture") {
         message = "No microphone found or audio capture failed."
       }
@@ -261,9 +273,7 @@ export function useVoiceBilling({
       const currentStatus = statusRef.current
       const currentError = errorRef.current
 
-      // Auto-restart if we are supposed to be listening or if we just had a network flicker
       if (currentStatus === "listening" || currentStatus === "processing" || (currentStatus === "idle" && currentError?.includes("Network Error"))) {
-        console.log("Attempting to restart speech recognition...")
         const restartTimer = setTimeout(() => {
           try {
             if (recognitionRef.current && !pausedRef.current) {
@@ -276,7 +286,7 @@ export function useVoiceBilling({
             setStatus("error")
             setError("Network connection lost. Please check your internet and try again.")
           }
-        }, 3000) // Wait 3 seconds before retrying
+        }, 3000)
         
         return () => clearTimeout(restartTimer)
       }
@@ -289,7 +299,165 @@ export function useVoiceBilling({
     recognitionRef.current = recognition
     setSupported(true)
     return recognition
-  }, [onTranscript])
+  }, [onTranscript, locale, setStatus, setError])
+
+  // --- Offline Engine Logic ---
+  
+  const setupSocket = useCallback(() => {
+    if (socketRef.current) return socketRef.current;
+
+    const socket = io("http://localhost:5001"); 
+    
+    socket.on("recognition-result", (data: { text: string, isFinal: boolean, confidence?: number }) => {
+      const { text, isFinal, confidence } = data;
+      
+      const segment: TranscriptSegment = {
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        text: text.trim(),
+        confidence: confidence || 1.0,
+        isFinal: isFinal,
+        timestamp: Date.now(),
+      };
+
+      setTranscripts((prev) => {
+        const updated = [segment, ...prev.filter(s => !(!s.isFinal && segment.isFinal && s.text.includes(segment.text.substring(0, 5))))]
+        return updated.slice(0, 10);
+      });
+
+      if (isFinal && onTranscript) {
+        onTranscript(text.trim(), confidence || 1.0);
+        setStatus("processing");
+        setTimeout(() => setStatus("listening"), 1000);
+      }
+    });
+
+    socket.on("recognition-error", (msg: string) => {
+      setError(`Offline Speech Error: ${msg}`);
+      setStatus("error");
+    });
+
+    socketRef.current = socket;
+    return socket;
+  }, [onTranscript, setStatus, setError]);
+
+  const startOfflineRecognition = useCallback(async () => {
+    try {
+      const stream = await ensureAudioStream();
+      if (!stream) return;
+
+      const socket = setupSocket();
+      socket.emit("start-recognition", { language });
+
+      const context = audioContextRef.current!;
+      const source = context.createMediaStreamSource(stream);
+      
+      const processor = context.createScriptProcessor(4096, 1, 1);
+      scriptProcessorRef.current = processor;
+
+      processor.onaudioprocess = (e) => {
+        if (statusRef.current !== "listening") return;
+        
+        const inputData = e.inputBuffer.getChannelData(0);
+        const pcmData = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i++) {
+          const s = Math.max(-1, Math.min(1, inputData[i]));
+          pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+        }
+        
+        socket.emit("audio-data", pcmData.buffer);
+      };
+
+      source.connect(processor);
+      processor.connect(context.destination);
+      
+      setStatus("listening");
+    } catch (err) {
+      console.error("Offline start failed:", err);
+      setError("Failed to start offline voice engine.");
+      setStatus("error");
+    }
+  }, [ensureAudioStream, setupSocket, language, setStatus, setError]);
+
+  const stopOfflineRecognition = useCallback(() => {
+    if (scriptProcessorRef.current) {
+      scriptProcessorRef.current.disconnect();
+      scriptProcessorRef.current = null;
+    }
+    if (socketRef.current) {
+      socketRef.current.emit("stop-recognition");
+    }
+    teardownAudioGraph();
+    setStatus("idle");
+  }, [setStatus, teardownAudioGraph]);
+
+  // --- Unified Controls ---
+
+  const start = useCallback(() => {
+    setError(null)
+    pausedRef.current = false
+    
+    if (isOffline) {
+      startOfflineRecognition();
+    } else {
+      const recognition = ensureRecognitionInstance()
+      if (recognition) {
+        try {
+          recognition.start()
+          setStatus("listening")
+        } catch (err) {
+          console.error("Start failed:", err)
+          setError("Already listening or failed to start.")
+        }
+      }
+    }
+  }, [ensureRecognitionInstance, startOfflineRecognition, isOffline, setStatus, setError])
+
+  const stop = useCallback(() => {
+    pausedRef.current = false
+    if (isOffline) {
+      stopOfflineRecognition();
+    } else {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop()
+      }
+      teardownAudioGraph();
+      setStatus("idle")
+    }
+  }, [isOffline, stopOfflineRecognition, setStatus, teardownAudioGraph])
+
+  const pause = useCallback(() => {
+    if (isOffline) {
+      // Offline doesn't support pause natively as easily, just stop capture
+      if (scriptProcessorRef.current) scriptProcessorRef.current.disconnect();
+      pausedRef.current = true;
+      setStatus("paused");
+    } else {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      pausedRef.current = true;
+      setStatus("paused");
+    }
+  }, [isOffline, setStatus]);
+
+  const resume = useCallback(() => {
+    pausedRef.current = false;
+    if (isOffline) {
+      if (audioContextRef.current && scriptProcessorRef.current) {
+        const source = audioContextRef.current.createMediaStreamSource(mediaStreamRef.current!);
+        source.connect(scriptProcessorRef.current);
+        setStatus("listening");
+      } else {
+        startOfflineRecognition();
+      }
+    } else {
+      start();
+    }
+  }, [isOffline, start, startOfflineRecognition, setStatus]);
+
+  const toggleOffline = useCallback(() => {
+    const wasListening = statusRef.current === "listening";
+    if (wasListening) stop();
+    setIsOffline(prev => !prev);
+  }, [stop]);
 
   useEffect(() => {
     const recognition = ensureRecognitionInstance()
@@ -300,62 +468,17 @@ export function useVoiceBilling({
       recognition?.stop()
       recognitionRef.current = null
       teardownAudioGraph()
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
     }
   }, [ensureRecognitionInstance, locale, teardownAudioGraph])
 
   useEffect(() => {
     if (status !== "listening") return
-    // When device changes mid-session, restart capture to honor new selection
     teardownAudioGraph()
     void ensureAudioStream()
   }, [deviceConstraint, ensureAudioStream, status, teardownAudioGraph])
-
-  const start = useCallback(async () => {
-    const recognition = ensureRecognitionInstance()
-    if (!recognition) {
-      setError("Voice recognition is not supported in this browser")
-      return
-    }
-    try {
-      const stream = await ensureAudioStream()
-      if (!stream) return
-      pausedRef.current = false
-      recognition.lang = locale
-      recognition.start()
-      setError(null)
-      setStatus("listening")
-    } catch (err) {
-      console.error("Failed to start voice recognition", err)
-      setError("Unable to start microphone. Check permissions and try again.")
-      setStatus("error")
-    }
-  }, [ensureAudioStream, ensureRecognitionInstance, locale])
-
-  const stop = useCallback(() => {
-    const recognition = recognitionRef.current
-    if (!recognition) return
-    pausedRef.current = false
-    recognition.stop()
-    setStatus("idle")
-    teardownAudioGraph()
-  }, [])
-
-  const pause = useCallback(() => {
-    const recognition = recognitionRef.current
-    if (!recognition) return
-    pausedRef.current = true
-    recognition.stop()
-    setStatus("paused")
-  }, [])
-
-  const resume = useCallback(() => {
-    if (!pausedRef.current) {
-      start()
-      return
-    }
-    pausedRef.current = false
-    void start()
-  }, [start])
 
   return {
     supported,
@@ -367,5 +490,7 @@ export function useVoiceBilling({
     resume,
     stop,
     inputLevel,
+    isOffline,
+    toggleOffline,
   }
 }

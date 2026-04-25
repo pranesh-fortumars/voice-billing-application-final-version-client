@@ -19,10 +19,27 @@ const leaveRoutes = require("./routes/leaves");
 const discountRoutes = require("./routes/discounts");
 const paymentRoutes = require("./routes/payments");
 
+const http = require("http");
+const { Server } = require("socket.io");
+const { initializeModels, handleSpeechSocket } = require("./services/speechService");
+
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Adjust this in production for security
+    methods: ["GET", "POST"]
+  }
+});
 
 // ✅ Connect to database AFTER env vars are loaded
 const dbConnection = connectDB();
+
+// Initialize Speech Models
+initializeModels();
+
+// Setup Speech WebSocket
+handleSpeechSocket(io);
 
 // Middleware
 app.use(cors());
@@ -53,7 +70,7 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, async () => {
+server.listen(PORT, async () => {
   console.log(`✅ Server running on port ${PORT}`);
   
   // Wait for MongoDB connection to be established

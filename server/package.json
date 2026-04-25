@@ -23,6 +23,8 @@
     "pdfkit": "^0.17.2",
     "puppeteer": "^21.11.0",
     "razorpay": "^2.9.6",
+    "socket.io": "^4.8.3",
+    "vosk": "^0.3.39",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Mic, Pause, Play, RefreshCw, Square, Waves } from "lucide-react"
+import { Mic, Pause, Play, RefreshCw, Square, Waves, CloudOff, Globe } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { useVoiceBilling } from "@/hooks/use-voice-billing"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface VoiceControlsProps {
@@ -53,6 +55,8 @@ export function VoiceControls({ onTranscript }: VoiceControlsProps) {
     resume,
     stop,
     inputLevel,
+    isOffline,
+    toggleOffline,
   } = useVoiceBilling({
     language,
     onTranscript,
@@ -202,10 +206,30 @@ export function VoiceControls({ onTranscript }: VoiceControlsProps) {
           </div>
           <div>
             <p className="text-sm font-medium">Voice Billing</p>
-            <p className="text-xs text-muted-foreground">Tap start and speak product commands</p>
+            <div className="flex items-center gap-1">
+              <p className="text-xs text-muted-foreground">Tap start and speak commands</p>
+              <Badge variant="outline" className="text-[9px] h-4 py-0 flex items-center gap-1">
+                {isOffline ? <CloudOff className="h-2 w-2" /> : <Globe className="h-2 w-2" />}
+                {isOffline ? "Offline" : "Cloud"}
+              </Badge>
+            </div>
           </div>
         </div>
         <Badge className={cn("text-xs capitalize", STATUS_COLORS[status])}>{status}</Badge>
+      </div>
+
+      <div className="flex items-center justify-between p-2 rounded bg-background/50 border border-dashed">
+        <div className="flex flex-col">
+          <Label htmlFor="offline-mode" className="text-xs font-semibold flex items-center gap-1">
+            <CloudOff className="h-3 w-3" /> Use Local Engine
+          </Label>
+          <span className="text-[10px] text-muted-foreground">Work without internet (Vosk)</span>
+        </div>
+        <Switch 
+          id="offline-mode" 
+          checked={isOffline} 
+          onCheckedChange={toggleOffline}
+        />
       </div>
 
       <div className="flex flex-col gap-2">
