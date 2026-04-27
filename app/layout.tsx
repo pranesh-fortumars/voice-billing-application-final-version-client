@@ -23,10 +23,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta
-          http-equiv="Content-Security-Policy"
-          content="default-src 'self' capacitor-electron://*; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com https://cdn.razorpay.com https://*.vercel-analytics.com https://*.google.com https://*.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://*.google-analytics.com https://*.api.qrserver.com; connect-src 'self' capacitor-electron://* http://localhost:5001 http://127.0.0.1:5001 https://api.razorpay.com wss://*.google.com https://*.googleapis.com https://*.google.com https://*.vercel-analytics.com; frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com https://*.google.com;"
-        />
       </head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <Suspense fallback={<div>Loading...</div>}>
