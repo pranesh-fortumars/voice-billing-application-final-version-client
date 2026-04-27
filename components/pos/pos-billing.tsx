@@ -173,7 +173,12 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
-  const [lastBillId, setLastBillId] = useState<string | null>(null)
+  const [lastBillId, setLastBillId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("pos_last_bill_id")
+    }
+    return null
+  })
   const [heldBills, setHeldBills] = useState<Array<{
     id: string
     billItems: BillItem[]
@@ -199,29 +204,39 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
 
   // Handle F12 key for last bill view
   useEffect(() => {
+    console.log("⌨️ F12 Key listener initialized. lastBillId:", lastBillId)
+    
     const handleKeyDown = async (e: KeyboardEvent) => {
       if (e.key === "F12") {
+        console.log("⌨️ F12 pressed! lastBillId available:", !!lastBillId)
+        
+        // Prevent default browser/electron behavior (like opening DevTools)
         e.preventDefault()
+        e.stopPropagation()
+
         if (lastBillId) {
           try {
+            console.log("🔄 Fetching bill details for ID:", lastBillId)
             setIsProcessing(true)
             const bill = await apiClient.getBill(lastBillId)
+            console.log("✅ Bill fetched successfully:", bill.billNumber)
             setViewBill(bill)
             setIsViewBillOpen(true)
           } catch (err) {
-            console.error("Failed to fetch last bill:", err)
+            console.error("❌ Failed to fetch last bill:", err)
             setError("Failed to open the last bill.")
           } finally {
             setIsProcessing(false)
           }
         } else {
+          console.warn("⚠️ No bill generated yet in this session.")
           setError("No bill generated yet in this session.")
         }
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+    window.addEventListener("keydown", handleKeyDown, true) // Use capture phase
+    return () => window.removeEventListener("keydown", handleKeyDown, true)
   }, [lastBillId])
 
   const calculateItemTotals = useCallback((item: Omit<BillItem, "amount" | "taxAmount" | "totalAmount">) => {
@@ -991,6 +1006,7 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
           }
           setSuccess(successMessage)
           setLastBillId(bill._id)
+          localStorage.setItem("pos_last_bill_id", bill._id)
         } catch (emailError) {
           console.error('Failed to send email:', emailError)
           // Still show success for bill creation, but note email failure
@@ -1000,6 +1016,7 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
           }
           setSuccess(successMessage)
           setLastBillId(bill._id)
+          localStorage.setItem("pos_last_bill_id", bill._id)
         }
       } else {
         let successMessage = `${mode === "challan" ? "Delivery Challan" : "Bill"} created successfully!`
@@ -1008,6 +1025,7 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
         }
         setSuccess(successMessage)
         setLastBillId(bill._id)
+        localStorage.setItem("pos_last_bill_id", bill._id)
       }
 
       clearBill()

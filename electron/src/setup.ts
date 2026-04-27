@@ -235,8 +235,8 @@ export function setupContentSecurityPolicy(customScheme: string): void {
         ...details.responseHeaders,
         'Content-Security-Policy': [
           electronIsDev
-            ? `default-src ${customScheme}://* 'unsafe-inline' devtools://* 'unsafe-eval' data:; connect-src ${connectSrc}; img-src ${customScheme}://* data: https://api.qrserver.com; frame-src https://checkout.razorpay.com https://*.google.com; script-src ${customScheme}://* 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://*.google.com https://*.googleapis.com; media-src ${customScheme}://* blob: data:;`
-            : `default-src ${customScheme}://* 'unsafe-inline' data:; connect-src ${connectSrc}; img-src ${customScheme}://* data: https://api.qrserver.com; frame-src https://checkout.razorpay.com https://*.google.com; script-src ${customScheme}://* 'unsafe-inline' https://checkout.razorpay.com https://*.google.com https://*.googleapis.com; media-src ${customScheme}://* blob: data:;`,
+            ? `default-src ${customScheme}://* 'unsafe-inline' devtools://* 'unsafe-eval' data:; connect-src ${connectSrc}; img-src ${customScheme}://* data: https://api.qrserver.com; frame-src https://checkout.razorpay.com https://api.razorpay.com https://*.google.com; script-src ${customScheme}://* 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://cdn.razorpay.com https://*.google.com https://*.googleapis.com; media-src ${customScheme}://* blob: data:;`
+            : `default-src ${customScheme}://* 'unsafe-inline' data:; connect-src ${connectSrc}; img-src ${customScheme}://* data: https://api.qrserver.com; frame-src https://checkout.razorpay.com https://api.razorpay.com https://*.google.com; script-src ${customScheme}://* 'unsafe-inline' https://checkout.razorpay.com https://cdn.razorpay.com https://*.google.com https://*.googleapis.com; media-src ${customScheme}://* blob: data:;`,
         ],
       },
     });
