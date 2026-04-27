@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog } from "@/components/ui/dialog"
@@ -31,6 +31,28 @@ export function BillDetailsDialog({ bill, isOpen, onClose }: BillDetailsDialogPr
   const [emailError, setEmailError] = useState("")
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false)
   const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false)
+
+  // Handle Enter key for printing
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Trigger print on Enter key, but only if not in an input or dialog
+      if (e.key === "Enter" && !showEmailDialog && !showWhatsAppDialog) {
+        // Prevent default only if we are taking the action
+        const activeElement = document.activeElement as HTMLElement
+        if (activeElement && (activeElement.tagName === "INPUT" || activeElement.tagName === "TEXTAREA")) {
+          return
+        }
+        
+        e.preventDefault()
+        handlePrint()
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isOpen, showEmailDialog, showWhatsAppDialog, bill])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {

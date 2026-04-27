@@ -14,7 +14,8 @@ import { CustomerInfo } from "./customer-info"
 import { VoiceControls } from "./voice-controls"
 import { LanguageSelector } from "@/components/ui/language-selector"
 import { ProductForm } from "@/components/products/product-form"
-import { apiClient, type Product, type ProductVariant, type CustomerInfo as CustomerInfoType } from "@/lib/api"
+import { BillDetailsDialog } from "@/components/bills/bill-details-dialog"
+import { apiClient, type Product, type ProductVariant, type CustomerInfo as CustomerInfoType, type Bill } from "@/lib/api"
 import { featureFlags } from "@/lib/feature-flags"
 import { parseVoiceCommand, type VoiceAction } from "@/lib/voice-parser"
 import { useToast } from "@/hooks/use-toast"
@@ -192,7 +193,36 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
   const [voiceMissingItems, setVoiceMissingItems] = useState<VoiceMissingItem[]>([])
   const [isProductFormOpen, setIsProductFormOpen] = useState(false)
   const [productFormInitialValues, setProductFormInitialValues] = useState<Partial<Product> | undefined>(undefined)
+  const [viewBill, setViewBill] = useState<Bill | null>(null)
+  const [isViewBillOpen, setIsViewBillOpen] = useState(false)
   const voiceEnabled = featureFlags.voiceBilling
+
+  // Handle F12 key for last bill view
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if (e.key === "F12") {
+        e.preventDefault()
+        if (lastBillId) {
+          try {
+            setIsProcessing(true)
+            const bill = await apiClient.getBill(lastBillId)
+            setViewBill(bill)
+            setIsViewBillOpen(true)
+          } catch (err) {
+            console.error("Failed to fetch last bill:", err)
+            setError("Failed to open the last bill.")
+          } finally {
+            setIsProcessing(false)
+          }
+        } else {
+          setError("No bill generated yet in this session.")
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [lastBillId])
 
   const calculateItemTotals = useCallback((item: Omit<BillItem, "amount" | "taxAmount" | "totalAmount">) => {
     const baseAmount = item.quantity * item.rate
@@ -1366,6 +1396,12 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
         onClose={closeProductForm}
         onSuccess={handleProductFormSuccess}
         initialValues={productFormInitialValues}
+      />
+
+      <BillDetailsDialog
+        bill={viewBill}
+        isOpen={isViewBillOpen}
+        onClose={() => setIsViewBillOpen(false)}
       />
     </>
   )
