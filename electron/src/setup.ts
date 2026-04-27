@@ -230,7 +230,8 @@ export class ElectronCapacitorApp {
 export function setupContentSecurityPolicy(customScheme: string): void {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     // Note: Wildcards like 10.* are invalid in CSP. Use *:5001 to allow any IP on that port, or list specific IPs.
-    const connectSrc = `${customScheme}://* http://localhost:5001 http://127.0.0.1:5001 http://10.0.2.2:5001 http://10.230.68.44:5001 http://*:5001 wss://*.google.com https://api.razorpay.com https://api.qrserver.com https://*.google.com https://*.googleapis.com https://*.gstatic.com https://*.vercel-analytics.com`;
+    // We also need to include ws:// and wss:// for WebSocket connections (like socket.io).
+    const connectSrc = `${customScheme}://* http://localhost:5001 ws://localhost:5001 http://127.0.0.1:5001 ws://127.0.0.1:5001 http://10.0.2.2:5001 http://10.230.68.44:5001 ws://10.230.68.44:5001 http://*:5001 ws://*:5001 wss://*.google.com https://api.razorpay.com https://api.qrserver.com https://*.google.com https://*.googleapis.com https://*.gstatic.com https://*.vercel-analytics.com`;
     
     callback({
       responseHeaders: {
