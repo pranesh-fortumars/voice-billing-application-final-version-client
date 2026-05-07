@@ -231,7 +231,7 @@ export function setupContentSecurityPolicy(customScheme: string): void {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     // Note: Wildcards like 10.* are invalid in CSP. Use *:5001 to allow any IP on that port, or list specific IPs.
     // We also need to include ws:// and wss:// for WebSocket connections (like socket.io).
-    const connectSrc = `${customScheme}://* http://localhost:5001 ws://localhost:5001 http://127.0.0.1:5001 ws://127.0.0.1:5001 http://10.0.2.2:5001 http://192.168.1.14:5001 ws://192.168.1.14:5001 http://*:5001 ws://*:5001 wss://*.google.com https://*.razorpay.com https://api.qrserver.com https://*.google.com https://*.googleapis.com https://*.gstatic.com https://*.vercel-analytics.com`;
+    const connectSrc = `${customScheme}://* http://localhost:5001 ws://localhost:5001 http://127.0.0.1:5001 ws://127.0.0.1:5001 http://10.0.2.2:5001 http://10.226.67.44:5001 ws://10.226.67.44:5001 http://*:5001 ws://*:5001 wss://*.google.com https://*.razorpay.com https://api.qrserver.com https://*.google.com https://*.googleapis.com https://*.gstatic.com https://*.vercel-analytics.com`;
     
     callback({
       responseHeaders: {
