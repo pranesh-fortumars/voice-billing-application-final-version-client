@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShoppingCart, RefreshCw, FileText, Wallet, Gift, Star, Loader2, Check, Sparkles, Search, Truck } from "lucide-react"
+import { ShoppingCart, RefreshCw, FileText, Wallet, Gift, Star, Loader2, Check, Sparkles, Search, Truck, Download } from "lucide-react"
 import { ProductSearch } from "./product-search"
 import { BillingTable, type BillItem } from "./billing-table"
 import { BillingSummary } from "./billing-summary"
@@ -202,6 +202,22 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
   const [isViewBillOpen, setIsViewBillOpen] = useState(false)
   const voiceEnabled = featureFlags.voiceBilling
 
+  const handleViewLastBill = async () => {
+    if (lastBillId) {
+      try {
+        setIsProcessing(true)
+        const bill = await apiClient.getBill(lastBillId)
+        setViewBill(bill)
+        setIsViewBillOpen(true)
+      } catch (err) {
+        console.error("Failed to fetch bill:", err)
+        setError("Failed to open the bill.")
+      } finally {
+        setIsProcessing(false)
+      }
+    }
+  }
+
   // Handle F12 key for last bill view
   useEffect(() => {
     console.log("⌨️ F12 Key listener initialized. lastBillId:", lastBillId)
@@ -214,24 +230,7 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
         e.preventDefault()
         e.stopPropagation()
 
-        if (lastBillId) {
-          try {
-            console.log("🔄 Fetching bill details for ID:", lastBillId)
-            setIsProcessing(true)
-            const bill = await apiClient.getBill(lastBillId)
-            console.log("✅ Bill fetched successfully:", bill.billNumber)
-            setViewBill(bill)
-            setIsViewBillOpen(true)
-          } catch (err) {
-            console.error("❌ Failed to fetch last bill:", err)
-            setError("Failed to open the last bill.")
-          } finally {
-            setIsProcessing(false)
-          }
-        } else {
-          console.warn("⚠️ No bill generated yet in this session.")
-          setError("No bill generated yet in this session.")
-        }
+        handleViewLastBill()
       }
     };
 
@@ -1060,8 +1059,19 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
               )}
 
               {success && (
-                <Alert className="border-green-200 bg-green-50 text-green-800 mb-4">
-                  <AlertDescription>{success}</AlertDescription>
+                <Alert className="border-green-200 bg-green-50 text-green-800 mb-4 flex items-center justify-between">
+                  <div>
+                    <AlertDescription>{success}</AlertDescription>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="ml-4 bg-white border-green-200 text-green-700 hover:bg-green-100"
+                    onClick={handleViewLastBill}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {mode === "challan" ? "View & Download Challan" : "View & Download Bill"}
+                  </Button>
                 </Alert>
               )}
 

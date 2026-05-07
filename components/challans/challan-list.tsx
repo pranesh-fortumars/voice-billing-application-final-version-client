@@ -222,7 +222,7 @@ export function ChallanList() {
                           <Button variant="ghost" size="sm" onClick={() => handleViewBill(bill)}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" disabled>
+                          <Button variant="ghost" size="sm" onClick={() => handleViewBill(bill)}>
                             <Printer className="h-4 w-4" />
                           </Button>
                         </div>

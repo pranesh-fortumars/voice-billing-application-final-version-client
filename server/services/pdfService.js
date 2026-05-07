@@ -79,6 +79,8 @@ const generateBillHTML = (bill, language = 'en') => {
       en: {
         supermarket_store: "SUPERMARKET STORE",
         bill: "BILL",
+        delivery_challan: "DELIVERY CHALLAN",
+        tax_invoice: "TAX INVOICE",
         date: "DATE",
         cashier: "CASHIER",
         customer: "CUSTOMER",
@@ -101,6 +103,8 @@ const generateBillHTML = (bill, language = 'en') => {
       ta: {
         supermarket_store: "சூப்பர்மார்க்கெட் ஸ்டோர்",
         bill: "பில்",
+        delivery_challan: "டெலிவரி சலான்",
+        tax_invoice: "வரி விலைப்பட்டியல்",
         date: "தேதி",
         cashier: "பணம் வசூலிப்பவர்",
         customer: "வாடிக்கையாளர்",
@@ -201,6 +205,9 @@ const generateBillHTML = (bill, language = 'en') => {
       <div class="pillaiyar-suli">௳</div>
       <div class="header">
         <div class="store-name">${t('supermarket_store')}</div>
+        <div class="bill-type" style="font-weight: bold; font-size: 16px; margin: 4px 0; text-decoration: underline;">
+          ${bill.type === 'challan' ? t('delivery_challan') : t('tax_invoice')}
+        </div>
         <div class="store-address">${language === 'ta' ? t('address_line_1') : '123 Main Street, City'}</div>
         <div class="store-address">${language === 'ta' ? t('address_line_2') : 'State, Country - 123456'}</div>
         <div class="store-phone">${language === 'ta' ? t('phone_label') : 'Phone: +1 234 567 8900'}</div>
