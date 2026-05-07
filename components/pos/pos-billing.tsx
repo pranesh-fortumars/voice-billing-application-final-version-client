@@ -331,22 +331,8 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
       })
 
       // Update product name based on designated language if synonym or nameTamil exists
-      if (language === "ta" || language === "bilingual") {
-        if (product.nameTamil) {
-          newItem.product = { ...product, name: product.nameTamil }
-        } else {
-          const synonym = VOICE_SYNONYMS.find(s =>
-            normalizeVoiceText(s.canonical) === normalizeVoiceText(product.name) ||
-            s.matchers.some(m => normalizeVoiceText(m) === normalizeVoiceText(product.name))
-          )
-          if (synonym) {
-            const tamilMatcher = synonym.matchers.find(m => /[\u0b80-\u0bff]/.test(m))
-            if (tamilMatcher) {
-              newItem.product = { ...product, name: tamilMatcher }
-            }
-          }
-        }
-      }
+      // Item added - the display name will be handled dynamically by the BillingTable component
+      // based on the current language setting.
 
       setBillItems((prev) => [...prev, newItem])
     }
@@ -1093,7 +1079,7 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
               <div className="flex-shrink-0 space-y-4">
                 <div className="flex gap-3 items-end">
                   <div className="flex-1">
-                    <ProductSearch onProductSelect={addProduct} />
+                    <ProductSearch onProductSelect={addProduct} language={language} />
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" onClick={clearBill} disabled={billItems.length === 0}>
@@ -1298,7 +1284,7 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
                   <CardContent className="flex-1 overflow-hidden p-0">
                     <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-muted/20 hover:scrollbar-thumb-muted-foreground">
                       <div className="p-4">
-                        <BillingTable items={billItems} onUpdateItem={updateItem} onRemoveItem={removeItem} />
+                        <BillingTable items={billItems} onUpdateItem={updateItem} onRemoveItem={removeItem} language={language} />
                       </div>
                     </div>
                   </CardContent>

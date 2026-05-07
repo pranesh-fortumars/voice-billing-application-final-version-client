@@ -10,6 +10,7 @@ const billItemSchema = new mongoose.Schema({
   variantSize: String,
   productCode: String,
   productName: String,
+  productNameTamil: String,
   quantity: {
     type: Number,
     required: true,

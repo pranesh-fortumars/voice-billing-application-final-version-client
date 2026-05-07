@@ -122,6 +122,7 @@ router.post("/", auth, async (req, res) => {
           ...item,
           productCode: product.code,
           productName: product.name,
+          productNameTamil: product.nameTamil,
           variantSize: variantSize,
           variantSku: selectedVariant ? selectedVariant.sku : null,
           amount: discountedAmount,

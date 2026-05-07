@@ -71,6 +71,127 @@ const generateBillPDF = async (bill, language = 'en') => {
   }
 };
 
+// Dictionary of common supermarket items for automatic Tamil translation fallback
+const tamilProductDictionary = {
+  "milk": "பால்",
+  "bread": "ரொட்டி",
+  "sugar": "சர்க்கரை",
+  "salt": "உப்பு",
+  "oil": "எண்ணெய்",
+  "rice": "அரிசி",
+  "dal": "பருப்பு",
+  "egg": "முட்டை",
+  "biscuit": "பிஸ்கட்",
+  "cake": "கேக்",
+  "soap": "சோப்பு",
+  "shampoo": "ஷாம்பு",
+  "paste": "பேஸ்ட்",
+  "brush": "பிரஷ்",
+  "water": "தண்ணீர்",
+  "tea": "தேயிலை",
+  "coffee": "காபி",
+  "juice": "ஜூஸ்",
+  "fruits": "பழங்கள்",
+  "vegetables": "காய்கறிகள்",
+  "onion": "வெங்காயம்",
+  "tomato": "தக்காளி",
+  "potato": "உருளைக்கிழங்கு",
+  "carrot": "கேரட்",
+  "butter": "வெண்ணெய்",
+  "cheese": "சீஸ்",
+  "paneer": "பன்னீர்",
+  "curd": "தயிர்",
+  "ghee": "நெய்",
+  "atta": "ஆட்டா",
+  "maida": "மைதா",
+  "rava": "ரவை",
+  "poha": "அவல்",
+  "chilli": "மிளகாய்",
+  "pepper": "மிளகு",
+  "cumin": "சீரகம்",
+  "turmeric": "மஞ்சள்",
+  "masala": "மசாலா",
+  "coconut": "தேங்காய்",
+  "banana": "வாழைப்பழம்",
+  "apple": "ஆப்பிள்",
+  "orange": "ஆரஞ்சு",
+  "mango": "மாம்பழம்",
+  "grapes": "திராட்சை",
+  "chocolate": "சாக்லேட்",
+  "chips": "சிப்ஸ்",
+  "detergent": "டிடர்ஜென்ட்",
+  "powder": "பவுடர்",
+  "cream": "கிரீம்",
+  "lotion": "லோஷன்",
+  "pulses": "பருப்பு வகைகள்",
+  "spices": "மசாலா பொருட்கள்",
+  "snacks": "தின்பண்டங்கள்",
+  "cool drinks": "குளிர் பானங்கள்",
+  "noodles": "நூடுல்ஸ்",
+  "pasta": "பாஸ்தா",
+  "pickle": "ஊறுகாய்",
+  "jam": "ஜாம்",
+  "honey": "தேன்",
+  "dry fruits": "உலர் பழங்கள்",
+  "nuts": "கொட்டைகள்",
+  "garlic": "பூண்டு",
+  "ginger": "இஞ்சி",
+  "lemon": "எலுமிச்சை",
+  "plum": "பிளம்",
+  "oreo": "ஓரியோ",
+  "marie": "மேரி",
+  "good day": "குட் டே",
+  "maggi": "மேகி",
+  "nandini": "நந்தினி",
+  "amul": "அமுல்",
+  "aavin": "ஆவின்",
+  "gold": "கோல்ட்",
+  "standard": "ஸ்டாண்டர்ட்",
+  "full cream": "முழு கிரீம்",
+  "toned": "டோன்ட்",
+  "packet": "பாக்கெட்",
+  "bottle": "பாட்டில்",
+  "box": "பாக்ஸ்",
+  "kg": "கி.கி",
+  "gm": "கிராம்",
+  "ml": "மி.லி",
+  "ltr": "லிட்டர்",
+  "liter": "லிட்டர்"
+};
+
+/**
+ * Helper function to translate English product names to Tamil using dictionary fallback.
+ * It handles multi-word matching and word boundaries.
+ */
+const translateProductToTamil = (name) => {
+  if (!name) return "";
+  
+  let translatedName = name.toLowerCase();
+  let hasReplacement = false;
+  
+  // Sort dictionary keys by length (longest first) to match phrases before individual words
+  const sortedKeys = Object.keys(tamilProductDictionary).sort((a, b) => b.length - a.length);
+  
+  for (const key of sortedKeys) {
+    if (translatedName.includes(key)) {
+      // Use regex for word boundary matching to avoid partial matches (e.g., 'milk' in 'milkyway')
+      // Note: \b doesn't always work well with Tamil characters, but here we are matching English keys
+      const regex = new RegExp(`\\b${key}\\b`, 'g');
+      if (regex.test(translatedName)) {
+        translatedName = translatedName.replace(regex, tamilProductDictionary[key]);
+        hasReplacement = true;
+      }
+    }
+  }
+  
+  // If no replacements were made, return original name
+  // Otherwise, clean up and capitalize the first letter of any remaining English parts
+  if (!hasReplacement) return name;
+  
+  // Basic cleanup: convert to title case only for English remnants if needed
+  return translatedName;
+};
+
 // Generate HTML template for the bill
 const generateBillHTML = (bill, language = 'en') => {
   // Translation function with bilingual support
@@ -241,8 +362,13 @@ const generateBillHTML = (bill, language = 'en') => {
         <tbody>
           ${bill.items.map(item => {
             let baseName = item.product?.name || item.productName || 'Unknown Item';
-            if (language === 'ta' && (item.product?.nameTamil || item.productNameTamil)) {
-              baseName = item.product?.nameTamil || item.productNameTamil;
+            if (language === 'ta') {
+              if (item.product?.nameTamil || item.productNameTamil) {
+                baseName = item.product?.nameTamil || item.productNameTamil;
+              } else {
+                // Fallback to automatic translation dictionary
+                baseName = translateProductToTamil(baseName);
+              }
             }
             const sizeInfo = item.size || item.variantSize ? `(${item.size || item.variantSize})` : '';
             const displayName = `${baseName} ${sizeInfo}`.trim();

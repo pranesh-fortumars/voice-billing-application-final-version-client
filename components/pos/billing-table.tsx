@@ -31,9 +31,10 @@ interface BillingTableProps {
   items: BillItem[]
   onUpdateItem: (id: string, updates: Partial<BillItem>) => void
   onRemoveItem: (id: string) => void
+  language?: string
 }
 
-export function BillingTable({ items, onUpdateItem, onRemoveItem }: BillingTableProps) {
+export function BillingTable({ items, onUpdateItem, onRemoveItem, language }: BillingTableProps) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -80,8 +81,8 @@ export function BillingTable({ items, onUpdateItem, onRemoveItem }: BillingTable
                 </TableCell>
                 <TableCell>
                   <div>
-                    <div className={cn("font-medium", isTamilText(item.product.name) && "font-sathayam text-lg")}>
-                      {item.product.name}
+                    <div className={cn("font-medium", (language === 'ta' && item.product.nameTamil || isTamilText(item.product.name)) && "font-sathayam text-lg")}>
+                      {language === 'ta' && item.product.nameTamil ? item.product.nameTamil : item.product.name}
                     </div>
                     <div className="text-sm text-muted-foreground flex items-center gap-1">
                       <span className={cn(isTamilText(item.product.category) && "font-sathayam")}>

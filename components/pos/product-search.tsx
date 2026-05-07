@@ -11,9 +11,10 @@ import { isTamilText, cn } from "@/lib/utils"
 
 interface ProductSearchProps {
   onProductSelect: (product: Product, variant: ProductVariant) => Promise<void>
+  language?: string
 }
 
-export function ProductSearch({ onProductSelect }: ProductSearchProps) {
+export function ProductSearch({ onProductSelect, language }: ProductSearchProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [searchResults, setSearchResults] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -145,8 +146,8 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
                 <div className="flex items-center justify-between p-3 bg-muted/50">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className={cn("font-medium", (isTamilText(product.name) || product.nameTamil) && "font-sathayam text-lg")}>
-                        {product.nameTamil ? `${product.name} (${product.nameTamil})` : product.name}
+                      <span className={cn("font-medium", (language === 'ta' && product.nameTamil || isTamilText(product.name) || product.nameTamil) && "font-sathayam text-lg")}>
+                        {language === 'ta' && product.nameTamil ? product.nameTamil : product.nameTamil ? `${product.name} (${product.nameTamil})` : product.name}
                       </span>
                       <Badge variant="outline" className="text-xs">
                         {product.code}
