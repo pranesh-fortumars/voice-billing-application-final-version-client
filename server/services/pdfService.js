@@ -399,6 +399,23 @@ const generateBillHTML = (bill, language = 'en') => {
       
       <div class="separator mt-1">------------------------------</div>
       
+      <div class="payment-info">
+        ${bill.paymentMethod === 'cash' ? `
+          <table class="payment-table">
+            <tr>
+              <td>${t('cash_tendered')}:</td>
+              <td>${formatCurrency(bill.cashTendered)}</td>
+            </tr>
+            <tr>
+              <td>${t('change')}:</td>
+              <td>${formatCurrency(bill.changeDue)}</td>
+            </tr>
+          </table>
+        ` : ''}
+      </div>
+
+      <div class="separator mt-1">------------------------------</div>
+      
       <table class="summary-table">
         <tr>
           <td>${t('subtotal')}:</td>
@@ -434,23 +451,6 @@ const generateBillHTML = (bill, language = 'en') => {
       </div>
       
       <div class="separator mt-1">==============================</div>
-      
-      <div class="payment-info">
-        ${bill.paymentMethod === 'cash' ? `
-          <table class="payment-table">
-            <tr>
-              <td>${t('cash_tendered')}:</td>
-              <td>${formatCurrency(bill.cashTendered)}</td>
-            </tr>
-            <tr>
-              <td>${t('change')}:</td>
-              <td>${formatCurrency(bill.changeDue)}</td>
-            </tr>
-          </table>
-        ` : ''}
-      </div>
-      
-      <div class="separator mt-1">------------------------------</div>
       
       <div class="footer">
         <div class="thank-you">${t('thank_you')}</div>
