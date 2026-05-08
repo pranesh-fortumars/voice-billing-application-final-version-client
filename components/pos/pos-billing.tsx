@@ -201,6 +201,34 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
   const [viewBill, setViewBill] = useState<Bill | null>(null)
   const [isViewBillOpen, setIsViewBillOpen] = useState(false)
   const voiceEnabled = featureFlags.voiceBilling
+  const [isOnline, setIsOnline] = useState(true)
+  const [pendingSyncCount, setPendingSyncCount] = useState(0)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const updateOnlineStatus = () => setIsOnline(window.navigator.onLine)
+    const updateSyncCount = () => {
+      const stored = localStorage.getItem('pos_pending_bills')
+      setPendingSyncCount(stored ? JSON.parse(stored).length : 0)
+    }
+
+    window.addEventListener('online', updateOnlineStatus)
+    window.addEventListener('offline', updateOnlineStatus)
+    window.addEventListener('storage', updateSyncCount)
+    
+    const interval = setInterval(updateSyncCount, 5000)
+
+    updateOnlineStatus()
+    updateSyncCount()
+
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus)
+      window.removeEventListener('offline', updateOnlineStatus)
+      window.removeEventListener('storage', updateSyncCount)
+      clearInterval(interval)
+    }
+  }, [])
 
   const handleViewLastBill = async () => {
     if (lastBillId) {
@@ -1103,6 +1131,22 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
                     <LanguageSelector />
                   </div>
                 </div>
+
+                {!isOnline && (
+                  <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive-foreground">
+                    <AlertDescription className="flex items-center gap-2 font-medium">
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      {language === 'ta' ? "ஆஃப்லைனில் வேலை செய்கிறீர்கள். இணையம் வந்தவுடன் பில்கள் தானாகவே பதிவேற்றப்படும்." : "Working Offline. Bills will sync automatically when online."}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                {pendingSyncCount > 0 && isOnline && (
+                  <div className="flex items-center gap-2 text-xs text-primary font-medium bg-primary/10 px-3 py-1.5 rounded-full w-fit animate-pulse">
+                    <RefreshCw className="h-3 w-3 animate-spin" />
+                    {language === 'ta' ? `${pendingSyncCount} பில்கள் பதிவேற்றப்படுகின்றன...` : `Syncing ${pendingSyncCount} pending bills...`}
+                  </div>
+                )}
 
                 {voiceEnabled && (
                   <VoiceControls onTranscript={handleVoiceTranscript} />

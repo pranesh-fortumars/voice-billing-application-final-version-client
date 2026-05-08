@@ -439,24 +439,25 @@ const generateBillHTML = (bill, language = 'en') => {
         </tr>
       </table>
       
-      <div class="separator mt-1">==============================</div>
-
-      <div class="customer-final-summary" style="margin: 6px 0; font-size: 11px;">
-        <div style="margin-bottom: 4px;">
-          <strong>${t('customer')}:</strong> ${customerName}
-        </div>
-        <div>
-          <strong>${t('total_paid')}:</strong> ${formatCurrency(bill.cashTendered || bill.grandTotal)}
-        </div>
-      </div>
-      
-      <div class="separator mt-1">==============================</div>
+      <div class="separator mt-1">------------------------------</div>
       
       <div class="footer">
         <div class="thank-you">${t('thank_you')}</div>
         <div class="visit-again">${t('please_visit_again')}</div>
       </div>
-      <div class="separator">==============================</div>
+
+      <div class="separator mt-1">==============================</div>
+
+      <table style="width: 100%; border-collapse: collapse; font-weight: bold; font-size: 12px; margin: 8px 0;">
+        <tr>
+          <td style="width: 15%;"></td>
+          <td style="text-align: center; width: 55%;">${customerName}</td>
+          <td style="text-align: right; width: 30%;">${formatCurrency(bill.cashTendered || bill.grandTotal)}</td>
+        </tr>
+      </table>
+      
+      <div class="separator mt-1">==============================</div>
+      
     </div>
   `;
 
