@@ -225,7 +225,8 @@ const generateBillHTML = (bill, language = 'en') => {
         thank_you: "THANK YOU FOR YOUR PURCHASE!",
         please_visit_again: "PLEASE VISIT AGAIN",
         paid: "*** PAID ***",
-        walk_in_customer: "Walk-in Customer"
+        walk_in_customer: "Walk-in Customer",
+        total_paid: "TOTAL PAID"
       },
       ta: {
         supermarket_store: "சூப்பர்மார்க்கெட் ஸ்டோர்",
@@ -250,6 +251,7 @@ const generateBillHTML = (bill, language = 'en') => {
         please_visit_again: "மீண்டும் வருகையிடுங்கள்",
         paid: "*** செலுத்தப்பட்டது ***",
         walk_in_customer: "நேரடி வாடிக்கையாளர்",
+        total_paid: "செலுத்தப்பட்ட மொத்த தொகை",
         address_line_1: "123 பிரதான வீதி, நகரம்",
         address_line_2: "மாநிலம், நாடு - 123456",
         phone_label: "தொலைபேசி: +91 234 567 8900",
@@ -419,6 +421,17 @@ const generateBillHTML = (bill, language = 'en') => {
           <td>${formatCurrency(bill.grandTotal)}</td>
         </tr>
       </table>
+      
+      <div class="separator mt-1">==============================</div>
+
+      <div class="customer-final-summary" style="margin: 6px 0; font-size: 11px;">
+        <div style="margin-bottom: 4px;">
+          <strong>${t('customer')}:</strong> ${customerName}
+        </div>
+        <div>
+          <strong>${t('total_paid')}:</strong> ${formatCurrency(bill.cashTendered || bill.grandTotal)}
+        </div>
+      </div>
       
       <div class="separator mt-1">==============================</div>
       
