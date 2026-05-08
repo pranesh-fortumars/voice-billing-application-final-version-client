@@ -338,7 +338,6 @@ const generateBillHTML = (bill, language = 'en') => {
       
       <div class="bill-info">
         <div>${t('date')}: ${formatDate(bill.createdAt)}</div>
-        <div>${t('cashier')}: ${bill.cashierName}</div>
       </div>
       
       <div class="separator">------------------------------</div>
@@ -414,7 +413,6 @@ const generateBillHTML = (bill, language = 'en') => {
       <div class="separator mt-1">==============================</div>
       
       <div class="payment-info">
-        <div>${t('payment_method')}: ${t(bill.paymentMethod.toLowerCase())}</div>
         ${bill.paymentMethod === 'cash' ? `
           <table class="payment-table">
             <tr>
@@ -432,10 +430,8 @@ const generateBillHTML = (bill, language = 'en') => {
       <div class="separator mt-1">------------------------------</div>
       
       <div class="footer">
-        <div class="customer-footer">Customer: ${customerName}</div>
         <div class="thank-you">${t('thank_you')}</div>
         <div class="visit-again">${t('please_visit_again')}</div>
-        ${bill.status === 'completed' ? `<div class="paid-status">${t('paid')}</div>` : ''}
       </div>
       <div class="separator">==============================</div>
     </div>
