@@ -73,14 +73,27 @@ export function BillingTable({ items, onUpdateItem, onRemoveItem, language }: Bi
             </TableRow>
           ) : (
             items.map((item) => (
-              <TableRow key={item.id} className="hover:bg-muted/50">
+              <TableRow 
+                key={item.id} 
+                className={cn(
+                  "hover:bg-muted/50 transition-colors", 
+                  item.product.productType === 'compound' && "bg-amber-50/70 border-l-4 border-l-amber-500 hover:bg-amber-100/70"
+                )}
+              >
                 <TableCell>
-                  <Badge variant="outline" className="font-mono">
-                    {item.product.code}
-                  </Badge>
+                  <div className="flex flex-col gap-1">
+                    <Badge variant="outline" className="font-mono w-fit">
+                      {item.product.code}
+                    </Badge>
+                    {item.product.productType === 'compound' && (
+                      <Badge variant="default" className="bg-amber-600 text-white text-[10px] px-1.5 py-0 w-fit">
+                        Compound
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <div>
+                  <div className={item.product.productType === 'compound' ? "relative" : ""}>
                     <div className={cn("font-medium", (language === 'ta' && item.product.nameTamil || isTamilText(item.product.name)) && "font-sathayam text-lg")}>
                       {language === 'ta' && item.product.nameTamil ? item.product.nameTamil : item.product.name}
                     </div>

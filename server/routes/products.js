@@ -273,6 +273,7 @@ router.get("/template/download", auth, adminAuth, (req, res) => {
         "Product Name": "Biscuit (பிஸ்கட்)",
         "Barcode": "8901234567890",
         "Category": "Snacks",
+        "Product Type": "Normal Product",
         "Unit": "pcs",
         "Tax Rate %": 5,
         "Base Price": 20,
@@ -287,6 +288,7 @@ router.get("/template/download", auth, adminAuth, (req, res) => {
         "Product Name": "Milk (பால்)",
         "Barcode": "8901234567891",
         "Category": "Dairy",
+        "Product Type": "Compound Product",
         "Unit": "packet",
         "Tax Rate %": 0,
         "Base Price": 25,
@@ -295,11 +297,42 @@ router.get("/template/download", auth, adminAuth, (req, res) => {
         "Variant Size": "500ml",
         "Variant SKU": "PR13-500ML",
         "Is Active": "Yes"
+      },
+      {
+        "Product Code": "PR14",
+        "Product Name": "Wholesale Grains (மொத்த தானியங்கள்)",
+        "Barcode": "8901234567892",
+        "Category": "Grains",
+        "Product Type": "Compound Product",
+        "Unit": "kg",
+        "Tax Rate %": 5,
+        "Base Price": 120,
+        "Base Cost": 100,
+        "Stock": 200,
+        "Variant Size": "Bulk",
+        "Variant SKU": "PR14-BULK",
+        "Is Active": "Yes"
       }
     ];
 
     const workbook = xlsx.utils.book_new();
-    const worksheet = xlsx.utils.json_to_sheet(data);
+    const worksheet = xlsx.utils.json_to_sheet(data, {
+      header: [
+        "Product Code",
+        "Product Name",
+        "Barcode",
+        "Category",
+        "Product Type",
+        "Unit",
+        "Tax Rate %",
+        "Base Price",
+        "Base Cost",
+        "Stock",
+        "Variant Size",
+        "Variant SKU",
+        "Is Active"
+      ]
+    });
     xlsx.utils.book_append_sheet(workbook, worksheet, "Inventory Template");
 
     const buffer = xlsx.write(workbook, { type: "buffer", bookType: "xlsx" });
@@ -356,6 +389,7 @@ router.post("/import", auth, adminAuth, upload.single("file"), async (req, res) 
           baseCost,
           unit: item["Unit"] || "pcs",
           taxRate: parseFloat(item["Tax Rate %"]) || 0,
+          productType: (item["Product Type"]?.toString().toLowerCase().includes('compound')) ? 'compound' : 'normal',
           isActive: (item["Is Active"]?.toString().toLowerCase() === 'no') ? false : true
         };
 

@@ -160,6 +160,14 @@ export function ProductSearch({ onProductSelect, language }: ProductSearchProps)
                       <span>•</span>
                       <span>{product.unit}</span>
                     </div>
+                    <div className="mt-1">
+                      <Badge variant={product.productType === 'compound' ? "outline" : "secondary"} className={cn(
+                        "text-[10px] px-1.5 py-0",
+                        product.productType === 'compound' ? "border-amber-500 text-amber-600 bg-amber-50" : "text-blue-600 bg-blue-50"
+                      )}>
+                        {product.productType === 'compound' ? "Compound" : "Normal"}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
                 

@@ -162,7 +162,7 @@ class ApiClient {
   }
 
   async downloadInventoryTemplate(): Promise<Blob> {
-    const url = `${API_BASE_URL}/products/template/download`
+    const url = `${API_BASE_URL}/products/template/download?t=${Date.now()}`
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -732,6 +732,7 @@ export interface Product {
   unit: string
   taxRate: number
   isActive: boolean
+  productType: "normal" | "compound"
   variants: ProductVariant[]
   createdAt: string
   updatedAt: string

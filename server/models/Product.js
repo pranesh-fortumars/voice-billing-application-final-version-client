@@ -95,6 +95,11 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    productType: {
+      type: String,
+      enum: ["normal", "compound"],
+      default: "normal",
+    },
     variants: [variantSchema],
   },
   {

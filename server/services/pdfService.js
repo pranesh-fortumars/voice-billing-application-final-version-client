@@ -156,7 +156,13 @@ const tamilProductDictionary = {
   "gm": "கிராம்",
   "ml": "மி.லி",
   "ltr": "லிட்டர்",
-  "liter": "லிட்டர்"
+  "liter": "லிட்டர்",
+  "wheat flour": "கோதுமை மாவு",
+  "wheat": "கோதுமை",
+  "flour": "மாவு",
+  "grains": "தானியங்கள்",
+  "wholesale": "மொத்த விற்பனை",
+  "compound": "கூட்டு"
 };
 
 /**
@@ -374,8 +380,12 @@ const generateBillHTML = (bill, language = 'en') => {
             const itemTotal = formatCurrency(item.totalAmount || (item.rate * item.quantity));
             const qtyStr = `${item.quantity}`;
             
+            // Check if item is a compound product for highlighting
+            const isCompound = item.productType === 'compound';
+            const rowClass = isCompound ? 'compound-row' : '';
+            
             return `
-              <tr>
+              <tr class="${rowClass}">
                 <td class="text-left item-name">${displayName}</td>
                 <td class="text-center">${qtyStr}</td>
                 <td class="text-right">${itemTotal}</td>
@@ -493,6 +503,19 @@ const generateBillHTML = (bill, language = 'en') => {
         .customer-footer { font-weight: bold; margin-bottom: 6px; border-top: 1px dotted #ccc; padding-top: 4px; }
         .thank-you { font-weight: bold; margin-bottom: 2px; }
         .paid-status { font-weight: bold; margin-top: 4px; }
+
+        /* Compound Product Highlighting */
+        .compound-row td {
+          border-top: 1px solid black;
+          border-bottom: 1px solid black;
+          font-weight: bold;
+          padding: 6px 0 !important;
+          background-color: #f9f9f9;
+        }
+        .compound-row .item-name::before {
+          content: "★ ";
+          font-size: 10px;
+        }
       </style>
     </head>
     <body>

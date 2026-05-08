@@ -123,6 +123,7 @@ router.post("/", auth, async (req, res) => {
           productCode: product.code,
           productName: product.name,
           productNameTamil: product.nameTamil,
+          productType: product.productType || "normal",
           variantSize: variantSize,
           variantSku: selectedVariant ? selectedVariant.sku : null,
           amount: discountedAmount,
@@ -231,7 +232,11 @@ router.post("/", auth, async (req, res) => {
       }
       
       // Check stock levels after update and send notifications if needed
-      await checkProductStock(item.product);
+      try {
+        await checkProductStock(item.product);
+      } catch (stockError) {
+        console.error(`⚠️ Stock notification error for product ${item.productName || item.productCode}:`, stockError.message);
+      }
     }
 
     await bill.populate("items.product");

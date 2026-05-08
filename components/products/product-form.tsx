@@ -57,6 +57,7 @@ export function ProductForm({ product, isOpen, onClose, onSuccess, initialValues
     unit: "pcs",
     taxRate: "",
     isActive: true,
+    productType: "normal" as "normal" | "compound",
   })
   const [variants, setVariants] = useState<ProductVariant[]>([
     {
@@ -83,6 +84,7 @@ export function ProductForm({ product, isOpen, onClose, onSuccess, initialValues
     unit: values?.unit ?? "pcs",
     taxRate: values?.taxRate !== undefined && values?.taxRate !== null ? values.taxRate.toString() : "",
     isActive: values?.isActive ?? true,
+    productType: values?.productType ?? "normal",
   })
 
   const buildVariantsFromInitial = (sourceVariants?: ProductVariant[]) => {
@@ -155,6 +157,7 @@ export function ProductForm({ product, isOpen, onClose, onSuccess, initialValues
         unit: formData.unit,
         taxRate: Number.parseFloat(formData.taxRate),
         isActive: formData.isActive,
+        productType: formData.productType,
         variants: variantsWithSKUs,
       }
 
@@ -324,6 +327,23 @@ export function ProductForm({ product, isOpen, onClose, onSuccess, initialValues
                       {unit}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="productType">Product Category/Type *</Label>
+              <Select
+                value={formData.productType}
+                onValueChange={(value: "normal" | "compound") => handleInputChange("productType", value)}
+                disabled={isLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">Normal Product</SelectItem>
+                  <SelectItem value="compound">Compound Product</SelectItem>
                 </SelectContent>
               </Select>
             </div>

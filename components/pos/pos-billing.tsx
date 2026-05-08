@@ -976,7 +976,15 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
         paymentDetails: Object.keys(paymentDetails).length > 0 ? paymentDetails : undefined,
         paymentBreakdown: paymentBreakdown.length > 0 ? paymentBreakdown : undefined,
         applyLoyaltyDiscount: loyaltyStatus?.isEligible || false,
-        type: mode
+        type: billItems.some(item => item.product.productType === 'compound') ? 'challan' : mode
+      }
+
+      // If we automatically changed type to challan, notify the user
+      if (mode === 'bill' && billData.type === 'challan') {
+        toast({
+          title: "Auto-switched to Delivery Challan",
+          description: "Compound products detected. Treating this as a Bulk Order Delivery Challan.",
+        })
       }
 
       const bill = await apiClient.createBill(billData)
