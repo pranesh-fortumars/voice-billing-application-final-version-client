@@ -226,7 +226,8 @@ const generateBillHTML = (bill, language = 'en') => {
         please_visit_again: "PLEASE VISIT AGAIN",
         paid: "*** PAID ***",
         walk_in_customer: "Walk-in Customer",
-        total_paid: "TOTAL PAID"
+        total_paid: "TOTAL PAID",
+        compound_items_summary: "COMPOUND PRODUCT / DELIVERY CHALLAN ITEMS"
       },
       ta: {
         supermarket_store: "சூப்பர்மார்க்கெட் ஸ்டோர்",
@@ -252,6 +253,7 @@ const generateBillHTML = (bill, language = 'en') => {
         paid: "*** செலுத்தப்பட்டது ***",
         walk_in_customer: "நேரடி வாடிக்கையாளர்",
         total_paid: "செலுத்தப்பட்ட மொத்த தொகை",
+        compound_items_summary: "கூட்டுப் பொருட்கள் / டெலிவரி சலான் பொருட்கள்",
         address_line_1: "123 பிரதான வீதி, நகரம்",
         address_line_2: "மாநிலம், நாடு - 123456",
         phone_label: "தொலைபேசி: +91 234 567 8900",
@@ -438,6 +440,35 @@ const generateBillHTML = (bill, language = 'en') => {
           <td>${formatCurrency(bill.grandTotal)}</td>
         </tr>
       </table>
+
+      ${(() => {
+        const compoundItems = bill.items.filter(item => item.productType === 'compound');
+        if (compoundItems.length === 0) return '';
+        
+        return `
+          <div class="separator mt-1">------------------------------</div>
+          <div class="compound-summary-section" style="margin: 8px 0;">
+            <div style="font-weight: bold; text-align: center; margin-bottom: 5px; font-size: 10px; text-decoration: underline;">
+              ${t('compound_items_summary')}
+            </div>
+            <table class="items-table" style="font-size: 9px; width: 100%;">
+              ${compoundItems.map(item => {
+                let name = item.product?.name || item.productName || 'Unknown Item';
+                if (language === 'ta') {
+                  name = item.product?.nameTamil || item.productNameTamil || translateProductToTamil(name);
+                }
+                const sizeInfo = item.size || item.variantSize ? `(${item.size || item.variantSize})` : '';
+                return `
+                  <tr>
+                    <td class="text-left" style="padding: 2px 0;">${name} ${sizeInfo}</td>
+                    <td class="text-right" style="padding: 2px 0;">x ${item.quantity}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </table>
+          </div>
+        `;
+      })()}
       
       <div class="separator mt-1">------------------------------</div>
       
