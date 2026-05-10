@@ -122,6 +122,8 @@ router.post("/", auth, async (req, res) => {
           ...item,
           productCode: product.code,
           productName: product.name,
+          productNameTamil: product.nameTamil,
+          productType: product.productType || "normal",
           variantSize: variantSize,
           variantSku: selectedVariant ? selectedVariant.sku : null,
           amount: discountedAmount,
@@ -170,11 +172,24 @@ router.post("/", auth, async (req, res) => {
     const finalTotal = Math.round(grandTotal);
     const changeDue = Math.max(0, cashTendered - finalTotal);
 
+    // Safety check for NaN values
+    if (isNaN(subtotal) || isNaN(totalTax) || isNaN(finalTotal)) {
+      console.error("Invalid calculation in bill creation:", { subtotal, totalTax, finalTotal });
+      return res.status(400).json({ 
+        message: "Failed to create bill due to invalid price or tax calculations.",
+        details: "One or more items have invalid price or tax data."
+      });
+    }
+
     // Active shift for the cashier, if any
     const activeShift = await Shift.findOne({
       cashier: req.user._id,
       status: "active",
     }).lean();
+
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ message: "Authentication error: User identity not found." });
+    }
 
     const bill = new Bill({
       items: processedItems,
@@ -230,7 +245,11 @@ router.post("/", auth, async (req, res) => {
       }
       
       // Check stock levels after update and send notifications if needed
-      await checkProductStock(item.product);
+      try {
+        await checkProductStock(item.product);
+      } catch (stockError) {
+        console.error(`⚠️ Stock notification error for product ${item.productName || item.productCode}:`, stockError.message);
+      }
     }
 
     await bill.populate("items.product");
@@ -246,10 +265,13 @@ router.post("/", auth, async (req, res) => {
     
     res.status(201).json(transformedBill);
   } catch (error) {
-    console.error("Error creating bill:", error);
+    console.error("CRITICAL ERROR in POST /api/bills:");
+    console.error("Stack trace:", error.stack);
+    console.error("Request body:", JSON.stringify(req.body, null, 2));
     res.status(500).json({
       message: "Failed to create bill",
       error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

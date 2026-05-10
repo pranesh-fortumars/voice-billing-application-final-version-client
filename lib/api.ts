@@ -20,18 +20,62 @@ const getApiBaseUrl = () => {
 const API_BASE_URL = getApiBaseUrl()
 
 class ApiClient {
+  private isOffline = false;
+  private pendingBillsKey = 'pos_pending_bills';
+  private productsCacheKey = 'pos_products_cache';
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => this.syncPendingBills());
+      this.syncPendingBills();
+    }
+  }
+
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = authService.getToken()
     const url = `${API_BASE_URL}${endpoint}`
 
-    console.log('🌐 API Request:', {
-      url,
-      method: options.method || "GET",
-      body: options.body,
-      hasToken: !!token,
-      tokenPreview: token ? token.substring(0, 20) + '...' : 'none'
-    })
+    // Special handling for offline GET products
+    if (endpoint.startsWith('/products') && options.method === 'GET' || !options.method) {
+      try {
+        const data = await this.performRequest<T>(url, options, token);
+        // Cache products on success
+        if (Array.isArray(data)) {
+          localStorage.setItem(this.productsCacheKey, JSON.stringify(data));
+        }
+        return data;
+      } catch (err) {
+        const cached = localStorage.getItem(this.productsCacheKey);
+        if (cached) {
+          console.warn("⚠️ Using cached products (Offline Mode)");
+          return JSON.parse(cached) as T;
+        }
+        throw err;
+      }
+    }
 
+    // Special handling for bill creation
+    if (endpoint === '/bills' && options.method === 'POST') {
+      try {
+        return await this.performRequest<T>(url, options, token);
+      } catch (err) {
+        console.warn("📡 Network failed. Queuing bill for offline sync...");
+        this.queueBill(options.body as string);
+        // Return a mock bill object to keep the UI happy
+        return { 
+          _id: `offline_${Date.now()}`, 
+          billNumber: 'PENDING',
+          status: 'pending_sync',
+          createdAt: new Date().toISOString(),
+          ...JSON.parse(options.body as string)
+        } as unknown as T;
+      }
+    }
+
+    return this.performRequest<T>(url, options, token);
+  }
+
+  private async performRequest<T>(url: string, options: RequestInit, token: string | null): Promise<T> {
     const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData
 
     const config: RequestInit = {
@@ -43,34 +87,69 @@ class ApiClient {
       },
     }
 
-    try {
-      const response = await fetch(url, config)
+    const response = await fetch(url, config)
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        let errorData
-        try {
-          errorData = JSON.parse(errorText)
-        } catch {
-          errorData = { message: `Request failed with status ${response.status}: ${response.statusText}`, raw: errorText }
-        }
-
-        console.error("❌ API Error:", {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData,
-          url,
-        })
-        throw new Error(errorData.message || `HTTP ${response.status}`)
+    if (!response.ok) {
+      const errorText = await response.text()
+      let errorData
+      try {
+        errorData = JSON.parse(errorText)
+      } catch {
+        errorData = { message: `Request failed with status ${response.status}: ${response.statusText}`, raw: errorText }
       }
+      throw new Error(errorData.message || `HTTP ${response.status}`)
+    }
 
-      const data = await response.json()
-      console.log("✅ API Response:", data)
-      return data
-    } catch (err: any) {
-      console.error("🌐 Network/Fetch Error:", err)
-      if (err instanceof Error) throw err
-      throw new Error(err?.message || "Network Error: Failed to reach the server.")
+    const contentType = response.headers.get("content-type")
+    if (contentType && contentType.includes("application/json")) {
+      return await response.json()
+    } else {
+      const text = await response.text()
+      console.warn("⚠️ Server returned non-JSON response:", text.substring(0, 100))
+      throw new Error("Server returned an invalid response format (HTML instead of JSON). This usually means the API endpoint is incorrect or the server is down.")
+    }
+  }
+
+  private queueBill(billJson: string) {
+    const pending = this.getPendingBills();
+    pending.push(JSON.parse(billJson));
+    localStorage.setItem(this.pendingBillsKey, JSON.stringify(pending));
+  }
+
+  private getPendingBills(): any[] {
+    const stored = localStorage.getItem(this.pendingBillsKey);
+    return stored ? JSON.parse(stored) : [];
+  }
+
+  private async syncPendingBills() {
+    const pending = this.getPendingBills();
+    if (pending.length === 0) return;
+
+    console.log(`🔄 Syncing ${pending.length} pending bills...`);
+    const successfulIndices: number[] = [];
+    const baseUrl = getApiBaseUrl();
+
+    for (let i = 0; i < pending.length; i++) {
+      try {
+        const syncUrl = `${baseUrl}/bills`;
+        console.log(`📡 Attempting sync to: ${syncUrl}`);
+        
+        await this.performRequest(syncUrl, {
+          method: 'POST',
+          body: JSON.stringify(pending[i])
+        }, authService.getToken());
+        
+        successfulIndices.push(i);
+      } catch (err) {
+        console.error(`❌ Failed to sync bill ${i}:`, err);
+      }
+    }
+
+    const remaining = pending.filter((_, idx) => !successfulIndices.includes(idx));
+    localStorage.setItem(this.pendingBillsKey, JSON.stringify(remaining));
+    
+    if (successfulIndices.length > 0) {
+      console.log(`✅ Successfully synced ${successfulIndices.length} bills.`);
     }
   }
 
@@ -162,7 +241,7 @@ class ApiClient {
   }
 
   async downloadInventoryTemplate(): Promise<Blob> {
-    const url = `${API_BASE_URL}/products/template/download`
+    const url = `${API_BASE_URL}/products/template/download?t=${Date.now()}`
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -395,46 +474,6 @@ class ApiClient {
   // Admin: Get available cashiers
   async getAvailableCashiers() {
     return this.request<any>("/shifts/available-cashiers")
-  }
-
-  // -------------------
-  // Client Data Intake API methods
-  // -------------------
-  async getClientData() {
-    return this.request<ClientData>("/client-data/me")
-  }
-
-  async updateClientData(payload: Partial<ClientData>) {
-    return this.request<ClientData>("/client-data/me", {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    })
-  }
-
-  async submitClientData(options?: { autoApprove?: boolean }) {
-    return this.request<ClientData>("/client-data/me/submit", {
-      method: "POST",
-      body: JSON.stringify(options ?? {}),
-    })
-  }
-
-  async uploadClientDataFile(formData: FormData) {
-    return this.request<ClientData>("/client-data/upload", {
-      method: "POST",
-      body: formData,
-      headers: {}, // Let browser set Content-Type for multipart/form-data
-    })
-  }
-
-  async listClientData() {
-    return this.request<ClientData[]>("/client-data")
-  }
-
-  async updateClientDataStatus(id: string, payload: { status: ClientDataStatus; notes?: string }) {
-    return this.request<ClientData>(`/client-data/${id}/status`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    })
   }
 
   // -------------------
@@ -764,6 +803,7 @@ export interface Product {
   _id: string
   code: string
   name: string
+  nameTamil?: string
   barcode?: string
   category: string
   basePrice: number
@@ -771,6 +811,7 @@ export interface Product {
   unit: string
   taxRate: number
   isActive: boolean
+  productType: "normal" | "compound"
   variants: ProductVariant[]
   createdAt: string
   updatedAt: string
@@ -1020,17 +1061,6 @@ export interface TopProductByCategory {
   avgPrice: number
 }
 
-export interface TopProduct {
-  _id: {
-    productId: string
-    productName: string
-    productCode: string
-  }
-  totalRevenue: number
-  totalQuantity: number
-  totalOrders: number
-  avgPrice: number
-}
 
 export interface CategoryTopProducts {
   category: string

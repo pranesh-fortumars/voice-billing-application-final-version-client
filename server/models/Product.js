@@ -53,6 +53,10 @@ const productSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    nameTamil: {
+      type: String,
+      trim: true,
+    },
     barcode: {
       type: String,
       unique: true,
@@ -90,6 +94,11 @@ const productSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    productType: {
+      type: String,
+      enum: ["normal", "compound"],
+      default: "normal",
     },
     variants: [variantSchema],
   },
@@ -145,7 +154,12 @@ productSchema.statics.findOrCreateProduct = async function(productData) {
   }
   
   if (existingProduct) {
-    // Product exists - update variants if provided
+    // Product exists - Update core fields
+    existingProduct.productType = productData.productType || existingProduct.productType;
+    existingProduct.category = productData.category || existingProduct.category;
+    existingProduct.isActive = productData.isActive !== undefined ? productData.isActive : existingProduct.isActive;
+    
+    // Update variants if provided
     if (variants && variants.length > 0) {
       variants.forEach(variantData => {
         const existingVariantIndex = existingProduct.variants.findIndex(
@@ -155,7 +169,9 @@ productSchema.statics.findOrCreateProduct = async function(productData) {
         if (existingVariantIndex >= 0) {
           // Update existing variant
           const existingVariant = existingProduct.variants[existingVariantIndex];
-          existingVariant.stock += variantData.stock || 0;
+          // For import, we might want to OVERWRITE or ADD stock. 
+          // Usually, bulk import for inventory means setting the CURRENT stock.
+          existingVariant.stock = variantData.stock !== undefined ? variantData.stock : existingVariant.stock;
           existingVariant.price = variantData.price || existingVariant.price;
           existingVariant.cost = variantData.cost || existingVariant.cost;
           existingVariant.isActive = true;
@@ -164,21 +180,19 @@ productSchema.statics.findOrCreateProduct = async function(productData) {
           existingProduct.variants.push(variantData);
         }
       });
-      
-      await existingProduct.save();
-      return {
-        product: existingProduct,
-        action: 'variants_updated',
-        message: 'Product variants updated successfully'
-      };
-    } else {
-      // Product already exists
-      return {
-        product: existingProduct,
-        action: 'exists',
-        message: 'Product already exists'
-      };
     }
+
+    // Update main stock field to match sum of variants or provided stock
+    if (productData.stock !== undefined) {
+      existingProduct.stock = productData.stock;
+    }
+
+    await existingProduct.save();
+    return {
+      product: existingProduct,
+      action: 'updated',
+      message: 'Product updated successfully'
+    };
   } else {
     // Create new product with variants
     const newProduct = new this(productData);

@@ -10,6 +10,12 @@ const billItemSchema = new mongoose.Schema({
   variantSize: String,
   productCode: String,
   productName: String,
+  productNameTamil: String,
+  productType: {
+    type: String,
+    enum: ["normal", "compound"],
+    default: "normal",
+  },
   quantity: {
     type: Number,
     required: true,

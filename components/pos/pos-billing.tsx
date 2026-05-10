@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShoppingCart, RefreshCw, FileText, Wallet, Gift, Star, Loader2, Check, Sparkles, Search, Truck } from "lucide-react"
+import { ShoppingCart, RefreshCw, FileText, Wallet, Gift, Star, Loader2, Check, Sparkles, Search, Truck, Download } from "lucide-react"
 import { ProductSearch } from "./product-search"
 import { BillingTable, type BillItem } from "./billing-table"
 import { BillingSummary } from "./billing-summary"
@@ -14,7 +14,8 @@ import { CustomerInfo } from "./customer-info"
 import { VoiceControls } from "./voice-controls"
 import { LanguageSelector } from "@/components/ui/language-selector"
 import { ProductForm } from "@/components/products/product-form"
-import { apiClient, type Product, type ProductVariant, type CustomerInfo as CustomerInfoType } from "@/lib/api"
+import { BillDetailsDialog } from "@/components/bills/bill-details-dialog"
+import { apiClient, type Product, type ProductVariant, type CustomerInfo as CustomerInfoType, type Bill } from "@/lib/api"
 import { featureFlags } from "@/lib/feature-flags"
 import { parseVoiceCommand, type VoiceAction } from "@/lib/voice-parser"
 import { useToast } from "@/hooks/use-toast"
@@ -22,7 +23,7 @@ import { VOICE_SYNONYMS } from "@/lib/voice-synonyms"
 import { useLanguage } from "@/contexts/language-context"
 import type { Language } from "@/contexts/language-context"
 
-const VOICE_CONFIDENCE_THRESHOLD = 0.55
+const VOICE_CONFIDENCE_THRESHOLD = 0.4
 const MAX_VOICE_SUGGESTIONS = 3
 const AUTO_APPLY_SUGGESTION_SCORE = 0.65
 const MIN_SUGGESTION_SCORE = 0.3
@@ -64,6 +65,7 @@ function computeVoiceMatchScore(product: Product, variant: ProductVariant, norma
 
   const candidates = [
     product.name,
+    product.nameTamil,
     product.code,
     product.category,
     variant.size,
@@ -171,7 +173,12 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
-  const [lastBillId, setLastBillId] = useState<string | null>(null)
+  const [lastBillId, setLastBillId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("pos_last_bill_id")
+    }
+    return null
+  })
   const [heldBills, setHeldBills] = useState<Array<{
     id: string
     billItems: BillItem[]
@@ -191,7 +198,73 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
   const [voiceMissingItems, setVoiceMissingItems] = useState<VoiceMissingItem[]>([])
   const [isProductFormOpen, setIsProductFormOpen] = useState(false)
   const [productFormInitialValues, setProductFormInitialValues] = useState<Partial<Product> | undefined>(undefined)
+  const [viewBill, setViewBill] = useState<Bill | null>(null)
+  const [isViewBillOpen, setIsViewBillOpen] = useState(false)
   const voiceEnabled = featureFlags.voiceBilling
+  const [isOnline, setIsOnline] = useState(true)
+  const [pendingSyncCount, setPendingSyncCount] = useState(0)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const updateOnlineStatus = () => setIsOnline(window.navigator.onLine)
+    const updateSyncCount = () => {
+      const stored = localStorage.getItem('pos_pending_bills')
+      setPendingSyncCount(stored ? JSON.parse(stored).length : 0)
+    }
+
+    window.addEventListener('online', updateOnlineStatus)
+    window.addEventListener('offline', updateOnlineStatus)
+    window.addEventListener('storage', updateSyncCount)
+    
+    const interval = setInterval(updateSyncCount, 5000)
+
+    updateOnlineStatus()
+    updateSyncCount()
+
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus)
+      window.removeEventListener('offline', updateOnlineStatus)
+      window.removeEventListener('storage', updateSyncCount)
+      clearInterval(interval)
+    }
+  }, [])
+
+  const handleViewLastBill = async () => {
+    if (lastBillId) {
+      try {
+        setIsProcessing(true)
+        const bill = await apiClient.getBill(lastBillId)
+        setViewBill(bill)
+        setIsViewBillOpen(true)
+      } catch (err) {
+        console.error("Failed to fetch bill:", err)
+        setError("Failed to open the bill.")
+      } finally {
+        setIsProcessing(false)
+      }
+    }
+  }
+
+  // Handle F12 key for last bill view
+  useEffect(() => {
+    console.log("⌨️ F12 Key listener initialized. lastBillId:", lastBillId)
+    
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if (e.key === "F12") {
+        console.log("⌨️ F12 pressed! lastBillId available:", !!lastBillId)
+        
+        // Prevent default browser/electron behavior (like opening DevTools)
+        e.preventDefault()
+        e.stopPropagation()
+
+        handleViewLastBill()
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true) // Use capture phase
+    return () => window.removeEventListener("keydown", handleKeyDown, true)
+  }, [lastBillId])
 
   const calculateItemTotals = useCallback((item: Omit<BillItem, "amount" | "taxAmount" | "totalAmount">) => {
     const baseAmount = item.quantity * item.rate
@@ -285,19 +358,9 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
         } : undefined
       })
 
-      // Update product name based on designated language if synonym exists
-      if (language === "ta" || language === "bilingual") {
-        const synonym = VOICE_SYNONYMS.find(s =>
-          normalizeVoiceText(s.canonical) === normalizeVoiceText(product.name) ||
-          s.matchers.some(m => normalizeVoiceText(m) === normalizeVoiceText(product.name))
-        )
-        if (synonym) {
-          const tamilMatcher = synonym.matchers.find(m => /[\u0b80-\u0bff]/.test(m))
-          if (tamilMatcher) {
-            newItem.product = { ...product, name: tamilMatcher }
-          }
-        }
-      }
+      // Update product name based on designated language if synonym or nameTamil exists
+      // Item added - the display name will be handled dynamically by the BillingTable component
+      // based on the current language setting.
 
       setBillItems((prev) => [...prev, newItem])
     }
@@ -678,6 +741,11 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
             results = await apiClient.getProducts({ search: term, active: true })
           } catch (err) {
             console.error("Voice lookup failed for term:", term, err)
+            toast({
+              title: "Server connection failed",
+              description: "Could not reach the database. Please ensure the backend server is running.",
+              variant: "destructive",
+            })
           }
 
           if (results.length === 0) {
@@ -936,7 +1004,15 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
         paymentDetails: Object.keys(paymentDetails).length > 0 ? paymentDetails : undefined,
         paymentBreakdown: paymentBreakdown.length > 0 ? paymentBreakdown : undefined,
         applyLoyaltyDiscount: loyaltyStatus?.isEligible || false,
-        type: mode
+        type: billItems.some(item => item.product.productType === 'compound') ? 'challan' : mode
+      }
+
+      // If we automatically changed type to challan, notify the user
+      if (mode === 'bill' && billData.type === 'challan') {
+        toast({
+          title: "Auto-switched to Delivery Challan",
+          description: "Compound products detected. Treating this as a Bulk Order Delivery Challan.",
+        })
       }
 
       const bill = await apiClient.createBill(billData)
@@ -951,6 +1027,7 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
           }
           setSuccess(successMessage)
           setLastBillId(bill._id)
+          localStorage.setItem("pos_last_bill_id", bill._id)
         } catch (emailError) {
           console.error('Failed to send email:', emailError)
           // Still show success for bill creation, but note email failure
@@ -960,6 +1037,7 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
           }
           setSuccess(successMessage)
           setLastBillId(bill._id)
+          localStorage.setItem("pos_last_bill_id", bill._id)
         }
       } else {
         let successMessage = `${mode === "challan" ? "Delivery Challan" : "Bill"} created successfully!`
@@ -968,6 +1046,7 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
         }
         setSuccess(successMessage)
         setLastBillId(bill._id)
+        localStorage.setItem("pos_last_bill_id", bill._id)
       }
 
       clearBill()
@@ -1002,8 +1081,19 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
               )}
 
               {success && (
-                <Alert className="border-green-200 bg-green-50 text-green-800 mb-4">
-                  <AlertDescription>{success}</AlertDescription>
+                <Alert className="border-green-200 bg-green-50 text-green-800 mb-4 flex items-center justify-between">
+                  <div>
+                    <AlertDescription>{success}</AlertDescription>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="ml-4 bg-white border-green-200 text-green-700 hover:bg-green-100"
+                    onClick={handleViewLastBill}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {mode === "challan" ? "View & Download Challan" : "View & Download Bill"}
+                  </Button>
                 </Alert>
               )}
 
@@ -1025,7 +1115,7 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
               <div className="flex-shrink-0 space-y-4">
                 <div className="flex gap-3 items-end">
                   <div className="flex-1">
-                    <ProductSearch onProductSelect={addProduct} />
+                    <ProductSearch onProductSelect={addProduct} language={language} />
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" onClick={clearBill} disabled={billItems.length === 0}>
@@ -1041,6 +1131,22 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
                     <LanguageSelector />
                   </div>
                 </div>
+
+                {!isOnline && (
+                  <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive-foreground">
+                    <AlertDescription className="flex items-center gap-2 font-medium">
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      {language === 'ta' ? "ஆஃப்லைனில் வேலை செய்கிறீர்கள். இணையம் வந்தவுடன் பில்கள் தானாகவே பதிவேற்றப்படும்." : "Working Offline. Bills will sync automatically when online."}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                {pendingSyncCount > 0 && isOnline && (
+                  <div className="flex items-center gap-2 text-xs text-primary font-medium bg-primary/10 px-3 py-1.5 rounded-full w-fit animate-pulse">
+                    <RefreshCw className="h-3 w-3 animate-spin" />
+                    {language === 'ta' ? `${pendingSyncCount} பில்கள் பதிவேற்றப்படுகின்றன...` : `Syncing ${pendingSyncCount} pending bills...`}
+                  </div>
+                )}
 
                 {voiceEnabled && (
                   <VoiceControls onTranscript={handleVoiceTranscript} />
@@ -1230,7 +1336,7 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
                   <CardContent className="flex-1 overflow-hidden p-0">
                     <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-muted/20 hover:scrollbar-thumb-muted-foreground">
                       <div className="p-4">
-                        <BillingTable items={billItems} onUpdateItem={updateItem} onRemoveItem={removeItem} />
+                        <BillingTable items={billItems} onUpdateItem={updateItem} onRemoveItem={removeItem} language={language} />
                       </div>
                     </div>
                   </CardContent>
@@ -1356,6 +1462,12 @@ export function POSBilling({ mode = "bill" }: POSBillingProps) {
         onClose={closeProductForm}
         onSuccess={handleProductFormSuccess}
         initialValues={productFormInitialValues}
+      />
+
+      <BillDetailsDialog
+        bill={viewBill}
+        isOpen={isViewBillOpen}
+        onClose={() => setIsViewBillOpen(false)}
       />
     </>
   )

@@ -114,7 +114,8 @@ export function BulkImport({ onSuccess }: BulkImportProps) {
         <DialogHeader>
           <DialogTitle>Bulk Import Inventory</DialogTitle>
           <DialogDescription>
-            Upload an Excel file to add or update multiple products at once.
+            Upload an Excel file to add or update multiple products at once. 
+            Include a "Product Type" column with values "Normal Product" or "Compound Product".
           </DialogDescription>
         </DialogHeader>
 

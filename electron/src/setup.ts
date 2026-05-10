@@ -229,14 +229,17 @@ export class ElectronCapacitorApp {
 // Set a CSP up for our application based on the custom scheme
 export function setupContentSecurityPolicy(customScheme: string): void {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    const connectSrc = `${customScheme}://* http://localhost:5001 http://127.0.0.1:5001 http://10.0.2.2:5001 wss://*.google.com https://api.razorpay.com https://api.qrserver.com https://*.google.com https://*.googleapis.com https://*.gstatic.com`;
+    // Note: Wildcards like 10.* are invalid in CSP. Use *:5001 to allow any IP on that port, or list specific IPs.
+    // We also need to include ws:// and wss:// for WebSocket connections (like socket.io).
+    const connectSrc = `${customScheme}://* http://localhost:5001 ws://localhost:5001 http://127.0.0.1:5001 ws://127.0.0.1:5001 http://10.0.2.2:5001 http://10.226.67.44:5001 ws://10.226.67.44:5001 http://*:5001 ws://*:5001 wss://*.google.com https://*.razorpay.com https://api.qrserver.com https://*.google.com https://*.googleapis.com https://*.gstatic.com https://*.vercel-analytics.com`;
+    
     callback({
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
           electronIsDev
-            ? `default-src ${customScheme}://* 'unsafe-inline' devtools://* 'unsafe-eval' data:; connect-src ${connectSrc}; img-src ${customScheme}://* data: https://api.qrserver.com; frame-src https://checkout.razorpay.com https://*.google.com; script-src ${customScheme}://* 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://*.google.com https://*.googleapis.com; media-src ${customScheme}://* blob: data:;`
-            : `default-src ${customScheme}://* 'unsafe-inline' data:; connect-src ${connectSrc}; img-src ${customScheme}://* data: https://api.qrserver.com; frame-src https://checkout.razorpay.com https://*.google.com; script-src ${customScheme}://* 'unsafe-inline' https://checkout.razorpay.com https://*.google.com https://*.googleapis.com; media-src ${customScheme}://* blob: data:;`,
+            ? `default-src ${customScheme}://* 'unsafe-inline' devtools://* 'unsafe-eval' data:; connect-src ${connectSrc} 'self'; img-src ${customScheme}://* data: https://api.qrserver.com https://*.razorpay.com https://*.google-analytics.com; frame-src 'self' https://*.razorpay.com https://*.google.com https://*.googleapis.com https://*.gstatic.com https://*.vercel-analytics.com; script-src ${customScheme}://* 'unsafe-inline' 'unsafe-eval' https://*.razorpay.com https://browser.sentry-cdn.com https://*.google.com https://*.googleapis.com https://*.vercel-analytics.com; style-src 'self' 'unsafe-inline' https://*.razorpay.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; media-src ${customScheme}://* blob: data:;`
+            : `default-src ${customScheme}://* 'unsafe-inline' data:; connect-src ${connectSrc} 'self'; img-src ${customScheme}://* data: https://api.qrserver.com https://*.razorpay.com https://*.google-analytics.com; frame-src 'self' https://*.razorpay.com https://*.google.com; script-src ${customScheme}://* 'unsafe-inline' https://*.razorpay.com https://browser.sentry-cdn.com https://*.google.com https://*.googleapis.com; style-src 'self' 'unsafe-inline' https://*.razorpay.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; media-src ${customScheme}://* blob: data:;`,
         ],
       },
     });

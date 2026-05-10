@@ -11,9 +11,10 @@ import { isTamilText, cn } from "@/lib/utils"
 
 interface ProductSearchProps {
   onProductSelect: (product: Product, variant: ProductVariant) => Promise<void>
+  language?: string
 }
 
-export function ProductSearch({ onProductSelect }: ProductSearchProps) {
+export function ProductSearch({ onProductSelect, language }: ProductSearchProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [searchResults, setSearchResults] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -145,8 +146,8 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
                 <div className="flex items-center justify-between p-3 bg-muted/50">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className={cn("font-medium", isTamilText(product.name) && "font-sathayam text-lg")}>
-                        {product.name}
+                      <span className={cn("font-medium", (language === 'ta' && product.nameTamil || isTamilText(product.name) || product.nameTamil) && "font-sathayam text-lg")}>
+                        {language === 'ta' && product.nameTamil ? product.nameTamil : product.nameTamil ? `${product.name} (${product.nameTamil})` : product.name}
                       </span>
                       <Badge variant="outline" className="text-xs">
                         {product.code}
@@ -158,6 +159,14 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
                       </span>
                       <span>•</span>
                       <span>{product.unit}</span>
+                    </div>
+                    <div className="mt-1">
+                      <Badge variant={product.productType === 'compound' ? "outline" : "secondary"} className={cn(
+                        "text-[10px] px-1.5 py-0",
+                        product.productType === 'compound' ? "border-amber-500 text-amber-600 bg-amber-50" : "text-blue-600 bg-blue-50"
+                      )}>
+                        {product.productType === 'compound' ? "Compound" : "Normal"}
+                      </Badge>
                     </div>
                   </div>
                 </div>

@@ -298,12 +298,20 @@ export function ProductList() {
                                 <div className="text-sm text-muted-foreground font-mono">
                                   {product.code}
                                 </div>
-                                {product.barcode && (
-                                  <div className="text-xs text-muted-foreground font-mono">
-                                    Barcode: {product.barcode}
+                                  {product.barcode && (
+                                    <div className="text-xs text-muted-foreground font-mono">
+                                      Barcode: {product.barcode}
+                                    </div>
+                                  )}
+                                  <div className="mt-1">
+                                    <Badge variant={product.productType === 'compound' ? "outline" : "secondary"} className={cn(
+                                      "text-[10px] px-1.5 py-0",
+                                      product.productType === 'compound' ? "border-amber-500 text-amber-600 bg-amber-50" : "text-blue-600 bg-blue-50"
+                                    )}>
+                                      {product.productType === 'compound' ? "Compound" : "Normal"}
+                                    </Badge>
                                   </div>
-                                )}
-                              </div>
+                                </div>
                               <div className="flex gap-1">
                                 <Button
                                   variant="ghost"
