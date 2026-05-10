@@ -441,35 +441,6 @@ const generateBillHTML = (bill, language = 'en') => {
         </tr>
       </table>
 
-      ${(() => {
-        const compoundItems = bill.items.filter(item => item.productType === 'compound');
-        if (compoundItems.length === 0) return '';
-        
-        return `
-          <div class="separator mt-1">------------------------------</div>
-          <div class="compound-summary-section" style="margin: 8px 0;">
-            <div style="font-weight: bold; text-align: center; margin-bottom: 5px; font-size: 10px; text-decoration: underline;">
-              ${t('compound_items_summary')}
-            </div>
-            <table class="items-table" style="font-size: 9px; width: 100%;">
-              ${compoundItems.map(item => {
-                let name = item.product?.name || item.productName || 'Unknown Item';
-                if (language === 'ta') {
-                  name = item.product?.nameTamil || item.productNameTamil || translateProductToTamil(name);
-                }
-                const sizeInfo = item.size || item.variantSize ? `(${item.size || item.variantSize})` : '';
-                return `
-                  <tr>
-                    <td class="text-left" style="padding: 2px 0;">${name} ${sizeInfo}</td>
-                    <td class="text-right" style="padding: 2px 0;">x ${item.quantity}</td>
-                  </tr>
-                `;
-              }).join('')}
-            </table>
-          </div>
-        `;
-      })()}
-      
       <div class="separator mt-1">------------------------------</div>
       
       <div class="footer">
@@ -488,6 +459,35 @@ const generateBillHTML = (bill, language = 'en') => {
       </table>
       
       <div class="separator mt-1">==============================</div>
+
+      ${(() => {
+        const compoundItems = bill.items.filter(item => item.productType === 'compound');
+        if (compoundItems.length === 0) return '';
+        
+        return `
+          <div class="compound-summary-section" style="margin: 12px 0 8px 0;">
+            <div style="font-weight: bold; text-align: center; margin-bottom: 5px; font-size: 10px; text-decoration: underline;">
+              ${t('compound_items_summary')}
+            </div>
+            <table class="items-table" style="font-size: 9px; width: 100%;">
+              ${compoundItems.map(item => {
+                let name = item.product?.name || item.productName || 'Unknown Item';
+                if (language === 'ta') {
+                  name = item.product?.nameTamil || item.productNameTamil || translateProductToTamil(name);
+                }
+                const sizeInfo = item.size || item.variantSize ? `(${item.size || item.variantSize})` : '';
+                return `
+                  <tr>
+                    <td class="text-left" style="padding: 2px 0;">${name} ${sizeInfo}</td>
+                    <td class="text-right" style="padding: 2px 0;">x ${item.quantity}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </table>
+            <div class="separator mt-1">------------------------------</div>
+          </div>
+        `;
+      })()}
       
     </div>
   `;

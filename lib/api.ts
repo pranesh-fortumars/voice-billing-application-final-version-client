@@ -100,7 +100,14 @@ class ApiClient {
       throw new Error(errorData.message || `HTTP ${response.status}`)
     }
 
-    return await response.json()
+    const contentType = response.headers.get("content-type")
+    if (contentType && contentType.includes("application/json")) {
+      return await response.json()
+    } else {
+      const text = await response.text()
+      console.warn("⚠️ Server returned non-JSON response:", text.substring(0, 100))
+      throw new Error("Server returned an invalid response format (HTML instead of JSON). This usually means the API endpoint is incorrect or the server is down.")
+    }
   }
 
   private queueBill(billJson: string) {
@@ -120,13 +127,18 @@ class ApiClient {
 
     console.log(`🔄 Syncing ${pending.length} pending bills...`);
     const successfulIndices: number[] = [];
+    const baseUrl = getApiBaseUrl();
 
     for (let i = 0; i < pending.length; i++) {
       try {
-        await this.performRequest('/bills', {
+        const syncUrl = `${baseUrl}/bills`;
+        console.log(`📡 Attempting sync to: ${syncUrl}`);
+        
+        await this.performRequest(syncUrl, {
           method: 'POST',
           body: JSON.stringify(pending[i])
         }, authService.getToken());
+        
         successfulIndices.push(i);
       } catch (err) {
         console.error(`❌ Failed to sync bill ${i}:`, err);
